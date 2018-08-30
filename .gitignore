@@ -1,0 +1,15 @@
+.vs
+CMakeSettings.json
+libs
+*ninja*
+CMakeCache.txt
+CMakeFiles
+GPATH
+GRTAGS
+GTAGS
+client
+cmake_install.cmake
+compile_commands.json
+*~
+*#*
+test.txt
