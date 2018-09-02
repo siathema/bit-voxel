@@ -46,5 +46,5 @@ void main() {
 
   vec4 lightMix = vec4((ambient + diffuse + specular), 1.0f);
   vec3 normalColor = (Normal + 1) * 0.5f;
-  color = vec4(normalColor, 1.0f);//mix(lightMix ,texture(ourTexture1, TexCoord), 0.7);
+  color = mix(lightMix ,texture(ourTexture1, TexCoord), 0.7);//vec4(normalColor, 1.0f);
 }

@@ -12,7 +12,7 @@ namespace SMOBA
 
     // implementation
 
-    void Shuffle_Int(i32* data, size_t size)
+    void Shuffle_Int(i32* data, i32 size)
     {
         i32* pTemp = (i32*)malloc(sizeof(i32) * size);
         memcpy(pTemp, data, sizeof(i32) * size);

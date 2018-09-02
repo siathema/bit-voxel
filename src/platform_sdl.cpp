@@ -71,7 +71,7 @@ namespace SMOBA
 							SDL_GL_CONTEXT_PROFILE_CORE);
 
 		SDL_Window* window = SDL_CreateWindow(
-			"Xeno Engine",
+			"Bit Voxel",
 			SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED,
 			viewPortInfo.ScreenWidth,
@@ -151,7 +151,7 @@ namespace SMOBA
 						0.01f,
 						100.0f);
 		cameras[1].Init(0.0f,
-						10.f,
+						64.f,
 						0.0f,
 						0.0f,
 						toRadians(45.f),

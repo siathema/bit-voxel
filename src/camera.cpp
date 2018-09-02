@@ -86,13 +86,13 @@ namespace SMOBA
 		// NOTE(matthias): Debug code!
 		r32 speed = 0.05f;
 
-		if (ip->Up)
+		if (ip->Keys['w'])
 			Pos += speed * -Direction;
-		if (ip->Down)
+		if (ip->Keys['s'])
 			Pos -= speed * -Direction;
-		if (ip->Left)
+		if (ip->Keys['a'])
 			Pos += vec3::normalize(-Direction.cross(Up)) * speed;
-		if (ip->Right)
+		if (ip->Keys['d'])
 			Pos -= vec3::normalize(-Direction.cross(Up)) * speed;
 
 		// mouse control

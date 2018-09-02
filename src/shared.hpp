@@ -9,7 +9,7 @@ namespace SMOBA
         i32 p[PERLIN_MAX];
     };
 
-    void Shuffle_Int(i32* data, size_t size);
+    void Shuffle_Int(i32* data, i32 size);
     PerlinData Init_Perlin(u32 seed);
     r64 Perlin_Noise(r64 x, r64 y, r64 z, PerlinData* p);
     r64 Perlin_Noise(r64 x, r64 y, PerlinData* p);

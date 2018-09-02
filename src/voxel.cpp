@@ -39,7 +39,7 @@ namespace SMOBA
 		u8* result = (u8*)malloc(sizeof(u8)*bytes);
 
 		PerlinData p = Init_Perlin(32);
-		r64 f = 0.022;
+		r64 f = 0.0052;
 
 		for (u32 row = 0; row < size; row++) {
 			for (u32 col = 0; col < size; col++) {
@@ -48,7 +48,7 @@ namespace SMOBA
                     Octave_Noise_Zero_To_One((col+(ChunkPosX*CHUNK_WIDTH))*f,
                                         (row+(ChunkPosY*CHUNK_WIDTH))*f,
                                         4, &p);
-				u8 heightByte = (CHUNK_HEIGHT*heightDouble);
+				u8 heightByte = GROUND_MIN + ((GROUND_MAX - GROUND_MIN)*heightDouble);
 
 				result[index] = heightByte;
 			}
@@ -81,6 +81,7 @@ namespace SMOBA
             {
                 for(i32 col=0; col < BLOCK_WIDTH; col++)
                 {
+#if 0
                    if(((row == 0 || row == BLOCK_WIDTH-1)&&
                        (level == 0 || level == BLOCK_WIDTH-1)) ||
                       ((col == 0 || col == BLOCK_WIDTH-1)&&
@@ -91,6 +92,7 @@ namespace SMOBA
                    {
                        continue;
                    }
+#endif
                    block->Voxels[(level*(BLOCK_WIDTH*BLOCK_WIDTH))+
                                  ((row*BLOCK_WIDTH)+col)] = 1;
                 }
