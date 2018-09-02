@@ -8,9 +8,6 @@ namespace SMOBA
     {
         namespace MESHES
         {
-            const ID DebugCube = 0;
-            const ID DebugBot = 1;
-            //extern Array<ID> ChunkMeshes;
         }
     }
 }

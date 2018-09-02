@@ -19,10 +19,12 @@ namespace SMOBA
 #define GROUND_MIN 56
 #define GROUND_MAX 96
 
+
     struct Voxel_Block
     {
         ID BlockId;
-        u16 Voxels[BLOCK_VOLUME];
+        u16 BlockType;
+        //u16 Voxels[BLOCK_VOLUME];
     };
 
     struct Voxel_Chunk

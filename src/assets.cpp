@@ -274,14 +274,8 @@ namespace SMOBA
 			Load_Texture("assets/img/test.png");
 			Load_Texture("assets/fonts/DebugFont.png");
 			Load_Texture("assets/img/tile.png");
-			Load_Texture("assets/img/tex.png");
-			Load_Texture("assets/img/Turret-Diffuse.jpg");
-			Load_Texture("assets/img/SPECULAR_Character.jpg");
-			Load_Texture("assets/img/Turret-Normal.jpg");
+            Load_Texture("assets/img/texture.png");
 		}
-
-        GenDebugCube();
-        loadFromIQM("assets/models/TestBot.iqm");
 
         for (i32 chunk = 0; chunk < voxelWorld->GeneratedChunks.Size; chunk++)
         {
@@ -291,15 +285,7 @@ namespace SMOBA
             CurrentChunk->MeshID = ASSETS::Meshes.Size - 1;
         }
 
-
-		{
-			ASSETS::Models[0].Meshes.Add(2);
-			ASSETS::Models[0].NumMeshes = ASSETS::Models[0].Meshes.Size;
-			ASSETS::Meshes[2].diffuse = ASSETS::TEXTURES::TurretDiffuse;
-			ASSETS::Meshes[2].specular = ASSETS::TEXTURES::TurretSpecular;
-			ASSETS::Meshes[2].normal = ASSETS::TEXTURES::TurretNormal;
-		}
-	}
+    }
 
 	void ASSETS::Unload_Assets() {
 

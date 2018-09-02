@@ -93,8 +93,7 @@ namespace SMOBA
                        continue;
                    }
 #endif
-                   block->Voxels[(level*(BLOCK_WIDTH*BLOCK_WIDTH))+
-                                 ((row*BLOCK_WIDTH)+col)] = 1;
+                   block->BlockType = 1;
                 }
             }
         }
@@ -114,9 +113,15 @@ namespace SMOBA
 					Genertate_Voxel_Block(
                         &chunk->Blocks[index + ((CHUNK_WIDTH*CHUNK_WIDTH)*i)], 1);
 				}
+
 			}
 			//printf("\n");
 		}
+
+#if 1
+        Genertate_Voxel_Block(&chunk->Blocks[CHUNK_WIDTH*CHUNK_WIDTH* 90], 1);
+#endif
+
 
 		return chunk;
 	}
@@ -264,36 +269,36 @@ namespace SMOBA
 		}
 	}
 //Front Right Top
-	Vertex cube[] = {
+	static Vertex cube[] = {
         // NOTE(matthias): Front 0
-		{ -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f,0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+		{ -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f,0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
         // NOTE(matthias): Back 6
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
 
         // NOTE(matthias): Left 12
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
 
         // NOTE(matthias): Right 18
         {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
         {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
         {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
         {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
         // NOTE(matthias): Bottom 24
         { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
@@ -312,14 +317,43 @@ namespace SMOBA
         { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
 	};
 
-	void Add_Voxel_Face(Array<Vertex>* vertices, i32 faceIndex, vec3* vertexPos)
+    static i32 UVs[] = {
+        // Dirt
+        // Bottom
+         0, 15 ,
+        // Side
+         0, 14 ,
+        // Top
+         0, 13 ,
+    };
+
+    enum CubeDir
+    {
+        bottom = 0,
+        side,
+        top,
+        cubeDirCount
+    };
+
+#define TEXTURE_STEP (1.0f / 16.0f)
+
+    static void Get_UV(r32* u, r32* v, i32 type, CubeDir dir)
+    {
+        i32* texLoc = UVs + (type*(3*2))+(dir*2);
+        *u = *u == 0.0f ? (texLoc[0] * TEXTURE_STEP) : (texLoc[0] * TEXTURE_STEP) + TEXTURE_STEP;
+        *v = *v == 0.0f ? (texLoc[1] * TEXTURE_STEP) : (texLoc[1] * TEXTURE_STEP) + TEXTURE_STEP;
+    }
+
+	void Add_Voxel_Face(Array<Vertex>* vertices, i32 faceIndex, vec3* vertexPos, u16 blockType, CubeDir dir)
 	{
+
 		for (i32 vert = 0; vert < 6; vert++)
 		{
 			Vertex vertex = cube[vert + faceIndex];
 			vertex.x += vertexPos->x;
 			vertex.y += vertexPos->y;
 			vertex.z += vertexPos->z;
+            Get_UV(&vertex.u, &vertex.v, blockType, dir);
 
 			vertices->Add(vertex);
 		}
@@ -369,7 +403,7 @@ namespace SMOBA
                                 for(i32 vCol=0; vCol<BLOCK_WIDTH; vCol++)
                                 {
                                    Voxel_Block currentBlock = chunk->Blocks[(level*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + col)];
-                                    if(currentBlock.Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + vCol)] > 0)
+                                    if(currentBlock.BlockType > 0)
                                     {
                                         //printf("terp\n");
                                         vec3 Pos = Voxel_Vertex_Pos + Vertex_Pos;
@@ -381,19 +415,19 @@ namespace SMOBA
                                         b8 IsVoxelOnBack = vRow == BLOCK_WIDTH - 1;
                                         b8 IsVoxelOnFront = vRow == 0;
 
-                                        b8 VoxelAboveBlockClear = IsOnTop ? true : chunk->Blocks[((level + 1)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + col)].Voxels[(vRow*BLOCK_WIDTH)+vCol] == 0;
-                                        b8 VoxelBelowBlockClear = IsOnBottom ? true : chunk->Blocks[((level - 1)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row)*CHUNK_WIDTH) + (col))].Voxels[((BLOCK_WIDTH*BLOCK_WIDTH)*(BLOCK_WIDTH-1))+((vRow*BLOCK_WIDTH)+vCol)] == 0;
-                                        b8 VoxelLeftBlockClear = IsOnLeft ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (col - 1))].Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + (BLOCK_WIDTH-1))] == 0;
-                                        b8 VoxelRightBlockClear = IsOnRight ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (col + 1))].Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + (vRow*BLOCK_WIDTH)] == 0;
-                                        b8 VoxelFrontBlockClear = IsOnFront ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row - 1)*CHUNK_WIDTH) + (col))].Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH))+((BLOCK_WIDTH*(BLOCK_WIDTH-1))+vCol)] == 0;
-                                        b8 VoxelBackBlockClear = IsOnBack ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row + 1)*CHUNK_WIDTH) + (col))].Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + vCol] == 0;
+                                        b8 VoxelAboveBlockClear = IsOnTop ? true : chunk->Blocks[((level + 1)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + col)].BlockType == 0;
+                                        b8 VoxelBelowBlockClear = IsOnBottom ? true : chunk->Blocks[((level - 1)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row)*CHUNK_WIDTH) + (col))].BlockType == 0;
+                                        b8 VoxelLeftBlockClear = IsOnLeft ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (col - 1))].BlockType == 0;
+                                        b8 VoxelRightBlockClear = IsOnRight ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (col + 1))].BlockType == 0;
+                                        b8 VoxelFrontBlockClear = IsOnFront ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row - 1)*CHUNK_WIDTH) + (col))].BlockType == 0;
+                                        b8 VoxelBackBlockClear = IsOnBack ? true : chunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((row + 1)*CHUNK_WIDTH) + (col))].BlockType == 0;
 
-                                        b8 VoxelAboveClear = IsVoxelOnTop ? VoxelAboveBlockClear : currentBlock.Voxels[((vLevel + 1)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + vCol)] == 0;
-                                        b8 VoxelBelowClear = IsVoxelOnBottom ? VoxelBelowBlockClear :currentBlock.Voxels[((vLevel - 1)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + vCol)] == 0;
-                                        b8 VoxelLeftClear = IsVoxelOnLeft  ? VoxelLeftBlockClear : currentBlock.Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + (vCol - 1))] == 0;
-                                        b8 VoxelRightClear = IsVoxelOnRight ? VoxelRightBlockClear : currentBlock.Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + ((vRow*BLOCK_WIDTH) + (vCol + 1))] == 0;
-                                        b8 VoxelFrontClear = IsVoxelOnFront ? VoxelFrontBlockClear : currentBlock.Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + (((vRow - 1)*BLOCK_WIDTH) + vCol)] == 0;
-                                        b8 VoxelBackClear = IsVoxelOnBack ? VoxelBackBlockClear : currentBlock.Voxels[((vLevel)*(BLOCK_WIDTH*BLOCK_WIDTH)) + (((vRow + 1)*BLOCK_WIDTH) + vCol)] == 0;
+                                        b8 VoxelAboveClear = IsVoxelOnTop ? VoxelAboveBlockClear : currentBlock.BlockType == 0;
+                                        b8 VoxelBelowClear = IsVoxelOnBottom ? VoxelBelowBlockClear :currentBlock.BlockType == 0;
+                                        b8 VoxelLeftClear = IsVoxelOnLeft  ? VoxelLeftBlockClear : currentBlock.BlockType == 0;
+                                        b8 VoxelRightClear = IsVoxelOnRight ? VoxelRightBlockClear : currentBlock.BlockType == 0;
+                                        b8 VoxelFrontClear = IsVoxelOnFront ? VoxelFrontBlockClear : currentBlock.BlockType == 0;
+                                        b8 VoxelBackClear = IsVoxelOnBack ? VoxelBackBlockClear : currentBlock.BlockType == 0;
 
                                         b8 SkinTop = false;//VoxelAboveClear && VoxelAboveBlockClear;
                                         b8 SkinBottom = false;//= VoxelBelowClear && VoxelBelowBlockClear;
@@ -414,27 +448,27 @@ namespace SMOBA
 
                                         if (SkinTop)
                                         {
-                                            Add_Voxel_Face(&vertices, 30, &Pos);
+                                            Add_Voxel_Face(&vertices, 30, &Pos, 0, top);
                                         }
                                         if (SkinRight)
                                         {
-                                            Add_Voxel_Face(&vertices, 18, &Pos);
+                                            Add_Voxel_Face(&vertices, 18, &Pos, 0, side);
                                         }
                                         if (SkinLeft)
                                         {
-                                            Add_Voxel_Face(&vertices, 12, &Pos);
+                                            Add_Voxel_Face(&vertices, 12, &Pos, 0, side);
                                         }
                                         if (SkinBack)
                                         {
-                                            Add_Voxel_Face(&vertices, 6, &Pos);
+                                            Add_Voxel_Face(&vertices, 6, &Pos, 0, side);
                                         }
                                         if (SkinFront)
                                         {
-                                            Add_Voxel_Face(&vertices, 0, &Pos);
+                                            Add_Voxel_Face(&vertices, 0, &Pos, 0, side);
                                         }
                                         if (SkinBottom)
                                         {
-                                            Add_Voxel_Face(&vertices, 24, &Pos);
+                                            Add_Voxel_Face(&vertices, 24, &Pos, 0, bottom);
                                         }
                                     }
                                     Voxel_Vertex_Pos.x += BLOCK_STEP;
@@ -483,7 +517,7 @@ namespace SMOBA
 			rc.ShaderType = SIMPLEMESH;
 			rc.Mesh = CurrentChunk->MeshID;
 			rc.Model = 0;
-			rc.Texture = ASSETS::TEXTURES::DebugTile;
+			rc.Texture = ASSETS::TEXTURES::TileMap;
 			rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			r32 gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH);
 			r32 gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);

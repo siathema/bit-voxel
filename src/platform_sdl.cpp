@@ -151,7 +151,7 @@ namespace SMOBA
 						0.01f,
 						100.0f);
 		cameras[1].Init(0.0f,
-						64.f,
+						90.f,
 						0.0f,
 						0.0f,
 						toRadians(45.f),
