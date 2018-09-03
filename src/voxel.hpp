@@ -31,7 +31,6 @@ namespace SMOBA
 
     struct Voxel_Block
     {
-        ID BlockId;
         BlockType BlockType;
         //u16 Voxels[BLOCK_VOLUME];
     };

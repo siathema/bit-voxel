@@ -6,13 +6,53 @@
 
 namespace SMOBA
 {
+	void Remove_Block(Voxel_World* world, i32 chunkX, i32 chunkY, i32 blockX, i32 blockY, i32 blockZ)
+	{
+		i32 chunkIndex = ((chunkY + (CHUNK_MAX/2) * CHUNK_MAX) + (chunkX + (CHUNK_MAX/2)));
+		Voxel_Chunk* chunk = &world->Chunks[chunkIndex];
+
+		i32 blockIndex = (blockZ * (CHUNK_WIDTH*CHUNK_WIDTH)) + (blockY * CHUNK_WIDTH) + blockX;
+		chunk->Blocks[blockIndex].BlockType = Air;
+	}
+
+	void Dig_Caves(Voxel_World* world)
+	{
+		PerlinData p = Init_Perlin(94302831);
+		r64 genStep = 0.06;
+		for(i32 chunk=0; chunk<(CHUNK_MAX*CHUNK_MAX); chunk++)
+		{
+			Voxel_Chunk* currentChunk = &world->Chunks[chunk];
+			i32 ChunkX = currentChunk->WorldPosX;
+			i32 ChunkY = currentChunk->WorldPosY;
+
+			for(i32 x=0; x<CHUNK_WIDTH; x++)
+			{
+				for(i32 y=0; y<CHUNK_WIDTH; y++)
+				{
+					for(i32 z=0; z<CHUNK_HEIGHT; z++)
+					{
+						r64 heightDouble =
+                    		Octave_Noise_Zero_To_One((x+((ChunkX + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
+                                        			(y+((ChunkY + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
+                                        			z*genStep,
+                                        				1, &p);
+                    		if(heightDouble < 0.25)
+                    		{
+                    			Remove_Block(world, ChunkX, ChunkY, x, y, z);
+                    		}
+					}
+				}
+			}
+		}
+	}
+
 	Voxel_World* Generate_Voxel_World()
 	{
 		Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
 		u32 numChunks = CHUNK_MAX * CHUNK_MAX;
 
-		i32 currentChunkX = 0;
-		i32 currentChunkY = 0;
+		i32 currentChunkX = -(CHUNK_MAX/2);
+		i32 currentChunkY = -(CHUNK_MAX/2);
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
 			u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
@@ -22,12 +62,13 @@ namespace SMOBA
 			result->Chunks[chunk].WorldPosY = currentChunkY;
 			result->GeneratedChunks.Add(chunk);
 			currentChunkX++;
-			if (currentChunkX >= CHUNK_MAX)
+			if (currentChunkX >= (CHUNK_MAX/2))
 			{
-				currentChunkX = 0;
+				currentChunkX = -(CHUNK_MAX/2);
 				currentChunkY++;
 			}
 		}
+		Dig_Caves(result);
 
 		return result;
 	}
@@ -45,8 +86,8 @@ namespace SMOBA
 			for (u32 col = 0; col < size; col++) {
 				u32 index = ((row*size) + col);
 				r64 heightDouble =
-                    Octave_Noise_Zero_To_One((col+(ChunkPosX*CHUNK_WIDTH))*genStep,
-                                        (row+(ChunkPosY*CHUNK_WIDTH))*genStep,
+                    Octave_Noise_Zero_To_One((col+((ChunkPosX + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
+                                        (row+((ChunkPosY + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
                                         4, &p);
 				u8 heightByte = GROUND_MIN + ((GROUND_MAX - GROUND_MIN)*heightDouble);
 
@@ -74,7 +115,6 @@ namespace SMOBA
 
     Voxel_Block* Genertate_Voxel_Block(Voxel_Block* block, BlockType type)
     {
-        block->BlockId = 1;
         block->BlockType = type;
 
         return block;
@@ -367,10 +407,10 @@ namespace SMOBA
 	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, ID chunkID)
 	{
         Voxel_Chunk* chunk = &world->Chunks[chunkID];
-        Voxel_Chunk* LeftChunk = chunk->WorldPosX == 0 ? 0 : &world->Chunks[chunk->ChunkID-1];
-        Voxel_Chunk* RightChunk = chunk->WorldPosX == CHUNK_MAX-1 ? 0 : &world->Chunks[chunk->ChunkID+1];
-        Voxel_Chunk* FrontChunk = chunk->WorldPosY == 0 ? 0 : &world->Chunks[chunk->ChunkID -(CHUNK_MAX)];
-        Voxel_Chunk* BackChunk = chunk->WorldPosY == CHUNK_MAX-1 ? 0 : &world->Chunks[chunk->ChunkID + CHUNK_MAX];
+        Voxel_Chunk* LeftChunk = chunk->WorldPosX == -(CHUNK_MAX/2) ? 0 : &world->Chunks[chunk->ChunkID-1];
+        Voxel_Chunk* RightChunk = chunk->WorldPosX == (CHUNK_MAX/2)-1 ? 0 : &world->Chunks[chunk->ChunkID+1];
+        Voxel_Chunk* FrontChunk = chunk->WorldPosY == -(CHUNK_MAX/2) ? 0 : &world->Chunks[chunk->ChunkID -(CHUNK_MAX)];
+        Voxel_Chunk* BackChunk = chunk->WorldPosY == (CHUNK_MAX/2)-1 ? 0 : &world->Chunks[chunk->ChunkID + CHUNK_MAX];
 
 		Array<Vertex> vertices;
         vec3 Vertex_Pos(0.0f, 0.0f, 0.0f);
@@ -380,7 +420,7 @@ namespace SMOBA
 			{
 				for (i32 col = 0; col < CHUNK_WIDTH; col++)
 				{
-					if (chunk->Blocks[(level*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + col)].BlockId > 0)
+					if (chunk->Blocks[(level*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + col)].BlockType > Air)
 					{
                         b8 IsOnRight = col == CHUNK_WIDTH - 1;
                         b8 IsOnLeft = col == 0;
@@ -394,10 +434,10 @@ namespace SMOBA
 
                         if(IsOnRight || IsOnLeft || IsOnRight || IsOnFront || IsOnBack)
                         {
-                            BlockLeftClear = LeftChunk == 0 ? false : LeftChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (CHUNK_WIDTH - 1))].BlockId == 0;
-                            BlockRightClear = RightChunk == 0 ? false : RightChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH))].BlockId == 0;
-                            BlockFrontClear = FrontChunk == 0 ? false : FrontChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((CHUNK_WIDTH - 1)*CHUNK_WIDTH) + (col))].BlockId == 0;
-                            BlockBackClear =  BackChunk == 0 ? false : BackChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + col].BlockId == 0;
+                            BlockLeftClear = LeftChunk == 0 ? false : LeftChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH) + (CHUNK_WIDTH - 1))].BlockType == Air;
+                            BlockRightClear = RightChunk == 0 ? false : RightChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + ((row*CHUNK_WIDTH))].BlockType == Air;
+                            BlockFrontClear = FrontChunk == 0 ? false : FrontChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + (((CHUNK_WIDTH - 1)*CHUNK_WIDTH) + (col))].BlockType == Air;
+                            BlockBackClear =  BackChunk == 0 ? false : BackChunk->Blocks[((level)*(CHUNK_WIDTH*CHUNK_WIDTH)) + col].BlockType == Air;
                         }
 
                         vec3 Voxel_Vertex_Pos(0.0f, 0.0f, 0.0f);

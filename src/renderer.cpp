@@ -202,6 +202,7 @@ namespace SMOBA
 				break;
 			case MESHRENDER:
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                //glEnable(GL_MULTISAMPLE);
 				glEnable(GL_DEPTH_TEST);
 				glEnable(GL_CULL_FACE);
 				Draw_Mesh(*ASSETS::Get_Mesh(rc.Mesh),
@@ -214,6 +215,7 @@ namespace SMOBA
 						 rc.ShaderType);
 				glDisable(GL_DEPTH_TEST);
 				glDisable(GL_CULL_FACE);
+                //glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 				break;
 			case MODELRENDER:
@@ -372,6 +374,8 @@ namespace SMOBA
 		vec3 lightPosition(20.f, 20.f, 0.5f);
 		model.make_transform(pos, scale, rot);
 
+        mat4 mvp = model * camera.View * camera.Projection;
+
 		u32 materialAmbLoc = glGetUniformLocation(ShaderIDs[shader],
 												  "material.ambient");
 		u32 materialDiffLoc = glGetUniformLocation(ShaderIDs[shader],
@@ -393,12 +397,11 @@ namespace SMOBA
 		//u32 lightPosLoc = glGetUniformLocation(ShaderIDs[shader], "lightPos");
 		//u32 lightColorLoc = glGetUniformLocation(ShaderIDs[shader], "lightColor");
 		//u32 objectColorLoc = glGetUniformLocation(ShaderIDs[shader], "objectColor");
-		u32 modelLoc = glGetUniformLocation(ShaderIDs[shader],
-											"model");
-		u32 viewLoc = glGetUniformLocation(ShaderIDs[shader],
-										   "view");
-		u32 projectionLoc = glGetUniformLocation(ShaderIDs[shader],
-												 "projection");
+
+		u32 mvpLoc = glGetUniformLocation(ShaderIDs[shader],
+												 "mvp");
+
+
 
 		glUniform3f(materialAmbLoc,
 					mesh.material.ambient.x,
@@ -420,14 +423,10 @@ namespace SMOBA
 					lightPosition.x, lightPosition.y, lightPosition.z);
 		glUniform3f(viewPosLoc, camera.Pos.x, camera.Pos.y, camera.Pos.z);
 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (GLfloat*)&model._m);
-
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (GLfloat*)&camera.View._m);
-
-		glUniformMatrix4fv(projectionLoc,
+		glUniformMatrix4fv(mvpLoc,
 						   1,
 						   GL_FALSE,
-						   (GLfloat*)&camera.Projection._m);
+						   (GLfloat*)&mvp._m);
 
 		if(shader == PHONGLIGHT)
 		{
@@ -566,7 +565,6 @@ namespace SMOBA
 
 	void Renderer::Init_Render_Data()
 	{
-
 		glClearColor(0.3f, 0.3f, 0.6f, 1.0f);
 
 
