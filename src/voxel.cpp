@@ -72,31 +72,11 @@ namespace SMOBA
 	}
 #endif
 
-    Voxel_Block* Genertate_Voxel_Block(Voxel_Block* block, u16 type)
+    Voxel_Block* Genertate_Voxel_Block(Voxel_Block* block, BlockType type)
     {
         block->BlockId = 1;
-        for(i32 level=0; level < BLOCK_WIDTH; level++)
-        {
-            for(i32 row=0; row < BLOCK_WIDTH; row++)
-            {
-                for(i32 col=0; col < BLOCK_WIDTH; col++)
-                {
-#if 0
-                   if(((row == 0 || row == BLOCK_WIDTH-1)&&
-                       (level == 0 || level == BLOCK_WIDTH-1)) ||
-                      ((col == 0 || col == BLOCK_WIDTH-1)&&
-                       (level == 0 || level == BLOCK_WIDTH-1)) ||
-                      (col == 0 && (row ==0 || row == BLOCK_WIDTH-1))
-                      || (col == BLOCK_WIDTH-1 &&
-                          (row == 0 || row == BLOCK_WIDTH-1)))
-                   {
-                       continue;
-                   }
-#endif
-                   block->BlockType = Grass;
-                }
-            }
-        }
+        block->BlockType = type;
+
         return block;
     }
 
@@ -110,19 +90,27 @@ namespace SMOBA
 				u8 height = heightMap[index];
 				for (i32 i = 0; i < height; i++)
 				{
-					Genertate_Voxel_Block(
-                        &chunk->Blocks[index + ((CHUNK_WIDTH*CHUNK_WIDTH)*i)], 1);
+                    BlockType type = Air;
+
+                    if(i == height - 1) {
+                        Genertate_Voxel_Block(
+                            &chunk->Blocks[index + ((CHUNK_WIDTH*CHUNK_WIDTH)*i)], Grass);
+                    }
+                    else if(i >= height - 8)
+                    {
+                        Genertate_Voxel_Block(
+                            &chunk->Blocks[index + ((CHUNK_WIDTH*CHUNK_WIDTH)*i)], Dirt);
+                    }
+                    else
+                    {
+                        Genertate_Voxel_Block(
+                            &chunk->Blocks[index + ((CHUNK_WIDTH*CHUNK_WIDTH)*i)], Stone);
+                    }
 				}
 
 			}
 			//printf("\n");
 		}
-
-#if 1
-        Genertate_Voxel_Block(&chunk->Blocks[CHUNK_WIDTH*CHUNK_WIDTH* 90], 1);
-#endif
-
-
 		return chunk;
 	}
 
