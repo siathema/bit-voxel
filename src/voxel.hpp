@@ -20,10 +20,19 @@ namespace SMOBA
 #define GROUND_MAX 96
 
 
+    enum BlockType : u16
+    {
+        Air,
+        Grass,
+        Stone,
+        Dirt,
+        BlockTypeCount
+    };
+
     struct Voxel_Block
     {
         ID BlockId;
-        u16 BlockType;
+        BlockType BlockType;
         //u16 Voxels[BLOCK_VOLUME];
     };
 

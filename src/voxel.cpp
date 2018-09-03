@@ -39,14 +39,14 @@ namespace SMOBA
 		u8* result = (u8*)malloc(sizeof(u8)*bytes);
 
 		PerlinData p = Init_Perlin(32);
-		r64 f = 0.0052;
+		r64 genStep = 0.022;
 
 		for (u32 row = 0; row < size; row++) {
 			for (u32 col = 0; col < size; col++) {
 				u32 index = ((row*size) + col);
 				r64 heightDouble =
-                    Octave_Noise_Zero_To_One((col+(ChunkPosX*CHUNK_WIDTH))*f,
-                                        (row+(ChunkPosY*CHUNK_WIDTH))*f,
+                    Octave_Noise_Zero_To_One((col+(ChunkPosX*CHUNK_WIDTH))*genStep,
+                                        (row+(ChunkPosY*CHUNK_WIDTH))*genStep,
                                         4, &p);
 				u8 heightByte = GROUND_MIN + ((GROUND_MAX - GROUND_MIN)*heightDouble);
 
@@ -93,7 +93,7 @@ namespace SMOBA
                        continue;
                    }
 #endif
-                   block->BlockType = 1;
+                   block->BlockType = Grass;
                 }
             }
         }
@@ -318,13 +318,30 @@ namespace SMOBA
 	};
 
     static i32 UVs[] = {
-        // Dirt
+        // Air
+        0,0,0,0,0,0,
+        // Grass
         // Bottom
          0, 15 ,
-        // Side
+         // Side
          0, 14 ,
-        // Top
+         // Top
          0, 13 ,
+         // Stone
+         // Bottom
+         5, 15 ,
+         // Side
+         5, 15 ,
+         // Top
+         5, 15 ,
+         // Dirt
+         // Bottom
+         0, 15,
+         // Side
+         0, 15,
+         // Top
+         0, 15
+
     };
 
     enum CubeDir
@@ -337,14 +354,14 @@ namespace SMOBA
 
 #define TEXTURE_STEP (1.0f / 16.0f)
 
-    static void Get_UV(r32* u, r32* v, i32 type, CubeDir dir)
+    static void Get_UV(r32* u, r32* v, BlockType type, CubeDir dir)
     {
         i32* texLoc = UVs + (type*(3*2))+(dir*2);
         *u = *u == 0.0f ? (texLoc[0] * TEXTURE_STEP) : (texLoc[0] * TEXTURE_STEP) + TEXTURE_STEP;
         *v = *v == 0.0f ? (texLoc[1] * TEXTURE_STEP) : (texLoc[1] * TEXTURE_STEP) + TEXTURE_STEP;
     }
 
-	void Add_Voxel_Face(Array<Vertex>* vertices, i32 faceIndex, vec3* vertexPos, u16 blockType, CubeDir dir)
+	void Add_Voxel_Face(Array<Vertex>* vertices, i32 faceIndex, vec3* vertexPos, BlockType blockType, CubeDir dir)
 	{
 
 		for (i32 vert = 0; vert < 6; vert++)
@@ -448,27 +465,27 @@ namespace SMOBA
 
                                         if (SkinTop)
                                         {
-                                            Add_Voxel_Face(&vertices, 30, &Pos, 0, top);
+                                            Add_Voxel_Face(&vertices, 30, &Pos, currentBlock.BlockType, top);
                                         }
                                         if (SkinRight)
                                         {
-                                            Add_Voxel_Face(&vertices, 18, &Pos, 0, side);
+                                            Add_Voxel_Face(&vertices, 18, &Pos, currentBlock.BlockType, side);
                                         }
                                         if (SkinLeft)
                                         {
-                                            Add_Voxel_Face(&vertices, 12, &Pos, 0, side);
+                                            Add_Voxel_Face(&vertices, 12, &Pos, currentBlock.BlockType, side);
                                         }
                                         if (SkinBack)
                                         {
-                                            Add_Voxel_Face(&vertices, 6, &Pos, 0, side);
+                                            Add_Voxel_Face(&vertices, 6, &Pos, currentBlock.BlockType, side);
                                         }
                                         if (SkinFront)
                                         {
-                                            Add_Voxel_Face(&vertices, 0, &Pos, 0, side);
+                                            Add_Voxel_Face(&vertices, 0, &Pos, currentBlock.BlockType, side);
                                         }
                                         if (SkinBottom)
                                         {
-                                            Add_Voxel_Face(&vertices, 24, &Pos, 0, bottom);
+                                            Add_Voxel_Face(&vertices, 24, &Pos, currentBlock.BlockType, bottom);
                                         }
                                     }
                                     Voxel_Vertex_Pos.x += BLOCK_STEP;
