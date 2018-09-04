@@ -43,7 +43,7 @@ namespace SMOBA
                 if(GameSync->UpdateLoop)
                 {
                     GameSync->Cams[1].Update(GameSync->Ip);
-
+					Update_Voxel_World(GameSync->VoxelWorld, GameSync->Cams[1].Pos);
                      Draw_Voxel_World(GameSync->Rq, GameSync->VoxelWorld);
 
                     GameSync->UpdateLoop = false;

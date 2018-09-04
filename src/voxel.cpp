@@ -73,7 +73,7 @@ namespace SMOBA
 		{
 			u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
 			Generate_HeightMap_Voxel_Chunk(heightMap, &(result->Chunks[chunk]));
-			result->Chunks[chunk].ChunkID = chunk;
+			//result->Chunks[chunk].ChunkID = chunk;
 			result->Chunks[chunk].WorldPosX = currentChunkX;
 			result->Chunks[chunk].WorldPosY = currentChunkY;
             result->ChunkSize++;
@@ -572,7 +572,9 @@ namespace SMOBA
 
 	void Update_Voxel_World(Voxel_World* world, vec3 playerPos)
 	{
-
+		i32 chunkX = playerPos.x / (BLOCK_METER * CHUNK_WIDTH);
+		i32 chunkY = playerPos.z / (BLOCK_METER * CHUNK_WIDTH);
+		printf("CHUNK: x: %d, y: %d\n", chunkX, chunkY);
 	}
 
 	void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld) {
