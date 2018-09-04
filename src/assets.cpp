@@ -277,10 +277,10 @@ namespace SMOBA
             Load_Texture("assets/img/texture.png");
 		}
 
-        for (i32 chunk = 0; chunk < voxelWorld->GeneratedChunks.Size; chunk++)
+        for (i32 chunk = 0; chunk < voxelWorld->ChunkSize; chunk++)
         {
-            Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[voxelWorld->GeneratedChunks[chunk]];
-            ASSETS::Meshes.Add(*Generate_Voxel_Chunk_Mesh(voxelWorld, CurrentChunk->ChunkID));
+            Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[chunk];
+            ASSETS::Meshes.Add(*Generate_Voxel_Chunk_Mesh(voxelWorld, CurrentChunk->WorldPosX, CurrentChunk->WorldPosY));
             //ASSETS::Meshes::ChunkMeshes.add(ASSETS::meshes.size - 1);
             CurrentChunk->MeshID = ASSETS::Meshes.Size - 1;
         }

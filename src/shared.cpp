@@ -10,7 +10,150 @@
 namespace SMOBA
 {
 
-    // implementation
+    u32 ROL_32(u32 n, u32 r)
+    {
+        u32 result = (n << r) | (n >> 32-r);
+        return result;
+    }
+
+    u32 ROR_32(u32 n, u32 r)
+    {
+        u32 result = (n >> r) | (n << 32-r);
+        return result;
+    }
+
+    //NOTE(matthias): based on https://en.wikipedia.org/wiki/MurmurHash
+    u32 Murmur3_Hash_U32(u8* key, u32 size, u32 seed=0xDEADBEEF)
+    {
+        u32 result;
+        u32 c1 = 0xCC9E2D51;
+        u32 c2 = 0x1B873593;
+        u32 r1 = 15;
+        u32 r2 = 13;
+        u32 m = 5;
+        u32 n = 0xE6546B64;
+
+        result = seed;
+
+        u32* keyInt = (u32*)key;
+        u32 numInt = size/4;
+        u32 remainder = size % 4;
+        for(u32 i=0; i<numInt; i++)
+        {
+            u32 k = keyInt[i];
+
+            k *= c1;
+            k = ROL_32(k, r1);
+            k *= c2;
+
+            result ^= k;
+            result = ROL_32(result, r2);
+            result = result * m + n;
+        }
+        // NOTE(matthias): Does not work accuratly on Big-Endian machines
+        if(remainder)
+        {
+            u32 last = 0;
+            for(u32 i=0; i<remainder; i++)
+            {
+                last |= key[(size - remainder) + i];
+                if(i != (remainder - 1))
+                    last <<= 8;
+            }
+            result ^= last;
+        }
+
+        result ^= size;
+        result ^= (result >> 16);
+        result *= 0x85EBCA6B;
+        result ^= (result >> 13);
+        result *= 0xC2B2AE35;
+        result ^= (result >> 16);
+
+        return result;
+    }
+
+    void HashStore( u8* key, u32 size, void* dataAddress, HashNode** table)
+    {
+        u32 hashIndex = Murmur3_Hash_U32(key, size);
+        hashIndex %= HASH_TABLE_SIZE;
+        HashNode* currentNode = table[hashIndex];
+		if(currentNode == 0)
+		{
+			currentNode = (HashNode*)calloc(1, sizeof(HashNode));
+			currentNode->Next = 0;
+			currentNode->Address = dataAddress;
+
+			currentNode->Key = (u8*)malloc(size);
+			currentNode->KeySize = size;
+			memcpy(currentNode->Key, key, size);
+			table[hashIndex] = currentNode;
+
+			return;
+		}
+        while(currentNode->Next != 0)
+        {
+			currentNode = currentNode->Next;
+        }
+		currentNode->Next = (HashNode*)calloc(1, sizeof(HashNode));
+		currentNode->Next->Prev = currentNode;
+		currentNode->Next->Address = dataAddress;
+
+		currentNode->Next->Key = (u8*)malloc(size);
+		currentNode->Next->KeySize = size;
+		memcpy(currentNode->Next->Key, key, size);
+    }
+
+    void* HashRead(u8* key, u32 size, HashNode** table)
+    {
+        u32 hashIndex = Murmur3_Hash_U32(key, size);
+        hashIndex %= HASH_TABLE_SIZE;
+        HashNode* currentNode = table[hashIndex];
+        if(currentNode == 0)
+        {
+            return 0;
+        }
+        do
+        {
+            if(currentNode->KeySize == size)
+            {
+                if(memcmp(key, currentNode->Key, size) == 0)
+                {
+                    return currentNode->Address;
+                }
+            }
+            currentNode = currentNode->Next;
+        } while(currentNode != 0);
+
+        return 0;
+    }
+
+    void HashDelete(u8* key, u32 size, HashNode** table)
+    {
+        u32 hashIndex = Murmur3_Hash_U32(key, size);
+        hashIndex %= HASH_TABLE_SIZE;
+        HashNode* currentNode = table[hashIndex];
+        if(currentNode == 0)
+        {
+            return;
+        }
+        do
+        {
+            if(currentNode->KeySize == size)
+            {
+                if(memcmp(key, currentNode->Key, size) == 0)
+                {
+                    currentNode->Prev->Next = currentNode->Next;
+                    free(currentNode->Key);
+                    free(currentNode);
+                    return;
+                }
+            }
+            currentNode = currentNode->Next;
+        } while(currentNode != 0);
+
+        return;
+    }
 
     void Shuffle_Int(i32* data, i32 size)
     {
@@ -65,7 +208,7 @@ namespace SMOBA
 
     static r64 Fade(r64 t)
     {
-        r64 result = t * t * t * (t * (t * 6 - 15) +10);
+        r64 result = t * t * t * (t * (t * 6 - 15) + 10);
         return result;
     }
 
@@ -103,7 +246,7 @@ namespace SMOBA
 		i32 AB = p->p[A + 1] + Z;
 		i32 B = p->p[X + 1] + Y;
 		i32 BA = p->p[B] + Z;
-		i32 BB = p->p[B + 1] + z;
+		i32 BB = p->p[B + 1] + Z;
 
         r64 result =  Lerp(w, Lerp(v, Lerp(u, Grad(p->p[AA], x, y, z),
                                            Grad(p->p[BA], x - 1, y, z)),

@@ -2,57 +2,73 @@
 #include "assets.hpp"
 #include "array.hpp"
 #include "stdlib.h"
-#include "shared.hpp"
 
 namespace SMOBA
 {
+    Voxel_Chunk* Voxel_Chunk_Read_Hash(i32 chunkX, i32 chunkY, HashNode** table)
+    {
+		u64 key = (u64)chunkX << 32;
+		key |= (u32)chunkY;
+        Voxel_Chunk* result = (Voxel_Chunk*)HashRead((u8*)(&key), sizeof(u64), table);
+        return result;
+    }
+
+    void Voxel_Chunk_Write_Hash(i32 chunkX, i32 chunkY, Voxel_Chunk* chunk,  HashNode** table)
+    {
+        u64 key = (u64)chunkX << 32 | (u32)chunkY;
+        HashStore((u8*)(&key), sizeof(u64), chunk, table);
+    }
+
+    void Voxel_Chunk_Delete_Hash(i32 chunkX, i32 chunkY, HashNode** table)
+    {
+        u64 key = (u64)chunkX << 32 | (u32)chunkY;
+        HashDelete((u8*)(&key), sizeof(u64), table);
+    }
+
 	void Remove_Block(Voxel_World* world, i32 chunkX, i32 chunkY, i32 blockX, i32 blockY, i32 blockZ)
 	{
-		i32 chunkIndex = ((chunkY + (CHUNK_MAX/2) * CHUNK_MAX) + (chunkX + (CHUNK_MAX/2)));
-		Voxel_Chunk* chunk = &world->Chunks[chunkIndex];
+		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
 
 		i32 blockIndex = (blockZ * (CHUNK_WIDTH*CHUNK_WIDTH)) + (blockY * CHUNK_WIDTH) + blockX;
 		chunk->Blocks[blockIndex].BlockType = Air;
 	}
 
-	void Dig_Caves(Voxel_World* world)
+	void Dig_Caves(Voxel_World* world, i32 chunkX, i32 chunkY)
 	{
 		PerlinData p = Init_Perlin(94302831);
 		r64 genStep = 0.06;
-		for(i32 chunk=0; chunk<(CHUNK_MAX*CHUNK_MAX); chunk++)
-		{
-			Voxel_Chunk* currentChunk = &world->Chunks[chunk];
-			i32 ChunkX = currentChunk->WorldPosX;
-			i32 ChunkY = currentChunk->WorldPosY;
 
-			for(i32 x=0; x<CHUNK_WIDTH; x++)
-			{
-				for(i32 y=0; y<CHUNK_WIDTH; y++)
-				{
-					for(i32 z=0; z<CHUNK_HEIGHT; z++)
-					{
-						r64 heightDouble =
-                    		Octave_Noise_Zero_To_One((x+((ChunkX + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
-                                        			(y+((ChunkY + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
-                                        			z*genStep,
-                                        				1, &p);
-                    		if(heightDouble < 0.25)
-                    		{
-                    			Remove_Block(world, ChunkX, ChunkY, x, y, z);
-                    		}
-					}
-				}
-			}
-		}
+        Voxel_Chunk* currentChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
+
+        for(i32 x=0; x<CHUNK_WIDTH; x++)
+        {
+            for(i32 y=0; y<CHUNK_WIDTH; y++)
+            {
+                for(i32 z=0; z<CHUNK_HEIGHT; z++)
+                {
+					r64 stepX = ((x + (chunkX * CHUNK_WIDTH)) * genStep);
+					r64 stepY = ((y + (chunkY * CHUNK_WIDTH)) * genStep);
+                    r64 heightDouble =
+                        Octave_Noise_Zero_To_One(stepX,
+                                                 stepY,
+                                                 z*genStep,
+                                                 1, &p);
+                    if(heightDouble < 0.25)
+                    {
+                        Remove_Block(world, chunkX, chunkY, x, y, z);
+                    }
+                }
+            }
+        }
 	}
 
 	Voxel_World* Generate_Voxel_World()
 	{
 		Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
-		u32 numChunks = CHUNK_MAX * CHUNK_MAX;
+		u32 numChunks = CHUNK_GEN_RADIUS * CHUNK_GEN_RADIUS;
 
-		i32 currentChunkX = -(CHUNK_MAX/2);
-		i32 currentChunkY = -(CHUNK_MAX/2);
+		i32 currentChunkX = -(CHUNK_GEN_RADIUS/2);
+		i32 currentChunkY = -(CHUNK_GEN_RADIUS/2);
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
 			u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
@@ -60,17 +76,18 @@ namespace SMOBA
 			result->Chunks[chunk].ChunkID = chunk;
 			result->Chunks[chunk].WorldPosX = currentChunkX;
 			result->Chunks[chunk].WorldPosY = currentChunkY;
-			result->GeneratedChunks.Add(chunk);
+            result->ChunkSize++;
+            Voxel_Chunk_Write_Hash(currentChunkX, currentChunkY, &result->Chunks[chunk], (HashNode**)&result->ChunkHashMap);
+            Dig_Caves(result, currentChunkX, currentChunkY);
 			currentChunkX++;
-			if (currentChunkX >= (CHUNK_MAX/2))
+			if (currentChunkX == (CHUNK_GEN_RADIUS/2))
 			{
-				currentChunkX = -(CHUNK_MAX/2);
+				currentChunkX = -(CHUNK_GEN_RADIUS/2);
 				currentChunkY++;
 			}
 		}
-		Dig_Caves(result);
 
-		return result;
+        return result;
 	}
 
 	u8* Generate_Chunk_HeightMap(i32 ChunkPosX, i32 ChunkPosY)
@@ -82,13 +99,15 @@ namespace SMOBA
 		PerlinData p = Init_Perlin(32);
 		r64 genStep = 0.022;
 
-		for (u32 row = 0; row < size; row++) {
-			for (u32 col = 0; col < size; col++) {
+		for (i32 row = 0; row < size; row++) {
+			for (i32 col = 0; col < size; col++) {
 				u32 index = ((row*size) + col);
+				r64 stepX = ((col + (ChunkPosX * CHUNK_WIDTH)) * genStep);
+				r64 stepY = ((row + (ChunkPosY * CHUNK_WIDTH)) * genStep);
 				r64 heightDouble =
-                    Octave_Noise_Zero_To_One((col+((ChunkPosX + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
-                                        (row+((ChunkPosY + CHUNK_MAX/2)*CHUNK_WIDTH))*genStep,
-                                        4, &p);
+                    Octave_Noise(stepX,
+                                        stepY,
+                                        3, &p);
 				u8 heightByte = GROUND_MIN + ((GROUND_MAX - GROUND_MIN)*heightDouble);
 
 				result[index] = heightByte;
@@ -404,13 +423,13 @@ namespace SMOBA
 		}
 	}
 
-	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, ID chunkID)
+	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY)
 	{
-        Voxel_Chunk* chunk = &world->Chunks[chunkID];
-        Voxel_Chunk* LeftChunk = chunk->WorldPosX == -(CHUNK_MAX/2) ? 0 : &world->Chunks[chunk->ChunkID-1];
-        Voxel_Chunk* RightChunk = chunk->WorldPosX == (CHUNK_MAX/2)-1 ? 0 : &world->Chunks[chunk->ChunkID+1];
-        Voxel_Chunk* FrontChunk = chunk->WorldPosY == -(CHUNK_MAX/2) ? 0 : &world->Chunks[chunk->ChunkID -(CHUNK_MAX)];
-        Voxel_Chunk* BackChunk = chunk->WorldPosY == (CHUNK_MAX/2)-1 ? 0 : &world->Chunks[chunk->ChunkID + CHUNK_MAX];
+        Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* LeftChunk = Voxel_Chunk_Read_Hash(chunkX-1, chunkY, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* RightChunk = Voxel_Chunk_Read_Hash(chunkX + 1, chunkY, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* FrontChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY-1, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* BackChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY+1, (HashNode**)&world->ChunkHashMap);
 
 		Array<Vertex> vertices;
         vec3 Vertex_Pos(0.0f, 0.0f, 0.0f);
@@ -551,12 +570,17 @@ namespace SMOBA
 		return mesh;
 	}
 
+	void Update_Voxel_World(Voxel_World* world, vec3 playerPos)
+	{
+
+	}
+
 	void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld) {
-		i32 numChunks = voxelWorld->GeneratedChunks.Size;
+		i32 numChunks = voxelWorld->ChunkSize;
 
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
-			Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[voxelWorld->GeneratedChunks[chunk]];
+			Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[chunk];
 			RenderCommand rc = {};
 			rc.RenderType = MESHRENDER;
 			rc.ShaderType = SIMPLEMESH;

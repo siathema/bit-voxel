@@ -4,11 +4,14 @@
 #include "sMath.hpp"
 #include "mesh.hpp"
 #include "renderer.hpp"
+#include "shared.hpp"
 
 namespace SMOBA
 {
 
-#define CHUNK_MAX 4
+#define CHUNK_MAX 2048
+#define CHUNK_MAX_ACTIVE 32;
+#define CHUNK_GEN_RADIUS 4
 #define CHUNK_WIDTH 32
 #define CHUNK_HEIGHT 256
 #define CHUNK_VOLUME CHUNK_WIDTH*CHUNK_WIDTH*CHUNK_HEIGHT
@@ -47,14 +50,16 @@ namespace SMOBA
     struct Voxel_World
     {
         u64 Seed;
-        Array<ID> GeneratedChunks;
-        Voxel_Chunk Chunks[CHUNK_MAX*CHUNK_MAX];
+        //Voxel_Chunk* ActiveChunks[CHUNK_MAX_ACTIVE];
+        i32 ChunkSize;
+        Voxel_Chunk Chunks[CHUNK_MAX];
+        HashNode* ChunkHashMap[HASH_TABLE_SIZE];
     };
 
     Voxel_World* Generate_Voxel_World();
     u8* Generate_Chunk_HeightMap(i32 chunkPosX, i32 chunkPosY);
     //Voxel_Chunk* Generate_Debug_Voxel_Chunk();
     Voxel_Chunk* Generate_HeightMap_Voxel_Chunk(u8* heightMap, Voxel_Chunk* chunk);
-    Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, ID chunkID);
+	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY);
     void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld);
 }

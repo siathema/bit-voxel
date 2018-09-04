@@ -305,6 +305,7 @@ namespace SMOBA
 			//NOTE(matthias): Timing stuff
 			u32 endTime = SDL_GetTicks();
 			elapsedTime = endTime - startTime;
+#if 1
 			if (elapsedTime < targetTime) {
 				u32 wait = targetTime - elapsedTime;
 				if (wait < 5)
@@ -320,6 +321,7 @@ namespace SMOBA
 					SDL_Delay(wait);
 				}
 			}
+#endif
 		}
 
 		//delete[] cameras;
