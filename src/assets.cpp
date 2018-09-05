@@ -14,7 +14,6 @@ namespace SMOBA
 {
 	Array<Texture2D> ASSETS::Textures;
 	Array<Mesh> ASSETS::Meshes;
-	Array<Model> ASSETS::Models;
 	//static Array<ID> ASSETS::Meshes::ChunkMeshes;
 
 	void Load_Texture(const char *path)
@@ -28,6 +27,7 @@ namespace SMOBA
 
 	void loadFromIQM(const char *path)
 	{
+#if 0
 		FILE* inStream = fopen(path, "rb");
 		s_assert(inStream != 0, "Could not open file\n");
 
@@ -179,82 +179,7 @@ namespace SMOBA
 		free(buffer);
 		free(iqm_mesh);
 		free(iqm_vertex_array);
-	}
-
-	void GenDebugCube()
-	{
-		Mesh* cube = new Mesh();
-		r32 vertices[] = {
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
-			0.5f, -0.5f, -0.5f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
-			0.5f,  0.5f, -0.5f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
-			0.5f,  0.5f, -0.5f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
-			-0.5f,  0.5f, -0.5f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
-
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
-			0.5f, -0.5f,  0.5f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
-			0.5f,  0.5f,  0.5f, 1.0f, 1.0f,  1.0f,  0.0f,  1.0f,
-			0.5f,  0.5f,  0.5f, 1.0f, 1.0f,  1.0f,  0.0f,  1.0f,
-			-0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f,
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
-
-			-0.5f,  0.5f,  0.5f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
-			-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f,
-			-0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
-			-0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f,
-			-0.5f,  0.5f,  0.5f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
-
-			0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
-			0.5f,  0.5f, -0.5f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
-			0.5f, -0.5f, -0.5f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
-			0.5f, -0.5f, -0.5f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
-			0.5f, -0.5f,  0.5f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
-			0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
-
-			-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
-			0.5f, -0.5f, -0.5f, 1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
-			0.5f, -0.5f,  0.5f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
-			0.5f, -0.5f,  0.5f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
-			-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
-
-			-0.5f,  0.5f, -0.5f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
-			0.5f,  0.5f, -0.5f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
-			0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-			0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-			-0.5f,  0.5f,  0.5f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-			-0.5f,  0.5f, -0.5f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f
-		};
-
-		for(u32 i=0; i<36; ++i)
-		{
-			Vertex v = {};
-			v.x = vertices[i*8];
-			v.y = vertices[i*8+1];
-			v.z = vertices[i*8+2];
-			v.u = vertices[i*8+3];
-			v.v = vertices[i*8+4];
-			v.nx = vertices[i*8+5];
-			v.ny = vertices[i*8+6];
-			v.nz = vertices[i*8+7];
-			cube->vertices.Add(v);
-			cube->indices.Add(i);
-		}
-		Material mat = {};
-		mat.ambient = vec3(1.0f, 0.5f, 0.31f);
-		mat.diffuse = vec3(1.0f, 0.5f, 0.31f);
-		mat.specular = vec3(0.5f, 0.5f, 0.5f);
-		mat.shininess = 32.0f;
-		cube->material = mat;
-		cube->GenVertexObjects();
-		ASSETS::Meshes.Add(*cube);
-	}
-
-	Model* ASSETS::Get_Model(ID assetID)
-	{
-		return &(Models[assetID]);
+#endif
 	}
 
 	Mesh* ASSETS::Get_Mesh(ID assetID)
@@ -276,14 +201,10 @@ namespace SMOBA
 			Load_Texture("assets/img/tile.png");
             Load_Texture("assets/img/texture.png");
 		}
+		ASSETS::Meshes.Add();
+		ASSETS::Meshes.Add();
 
-        for (i32 chunk = 0; chunk < voxelWorld->ChunkSize; chunk++)
-        {
-            Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[chunk];
-            ASSETS::Meshes.Add(*Generate_Voxel_Chunk_Mesh(voxelWorld, CurrentChunk->WorldPosX, CurrentChunk->WorldPosY));
-            //ASSETS::Meshes::ChunkMeshes.add(ASSETS::meshes.size - 1);
-            CurrentChunk->MeshID = ASSETS::Meshes.Size - 1;
-        }
+		Voxel_World_Gen_Chunk_Meshes(voxelWorld);
 
     }
 

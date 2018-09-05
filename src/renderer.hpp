@@ -42,7 +42,6 @@ namespace SMOBA
 		STRINGRENDER,
 		TEXTRECTRENDER,
 		MESHRENDER,
-		MODELRENDER,
 		RENDERCOUNT
 	};
 
@@ -51,7 +50,6 @@ namespace SMOBA
 		RenderType RenderType;
 		ShaderType ShaderType;
 		ID Mesh;
-		ID Model;
 		ID Texture;
 		iRect TextureRect;
 		vec4 Color;
@@ -77,7 +75,6 @@ namespace SMOBA
 		Renderer(ViewportInfo* viewportInfo);
 
 		void Render(Queue_Array<RenderCommand> *renderQueue, Camera *camera);
-		void Render_Model(RenderCommand rc, Camera camera);
 		void Draw_Text_Rect(const char* str,
 							Camera &camera,
 							r32 x,

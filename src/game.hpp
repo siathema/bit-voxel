@@ -16,6 +16,7 @@
 
 #define CLAMP(x, min, max) ((x<min)||(x>max))?((x<min)? (min) : (max)):(x)
 #define ARRAYCOUNT(a) ((sizeof(a))/(sizeof(a[0])))
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 namespace SMOBA
 {

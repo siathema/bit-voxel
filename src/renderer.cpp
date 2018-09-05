@@ -218,9 +218,6 @@ namespace SMOBA
                 //glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 				break;
-			case MODELRENDER:
-				Renderer::Render_Model(rc, camera[1]);
-				break;
 			default:
 				s_assert(false, "Invalid Render Command!\n");
 			}
@@ -228,25 +225,6 @@ namespace SMOBA
 		Draw_Overlay();
 	}
 
-	void Renderer::Render_Model(RenderCommand rc, Camera camera)
-	{
-		Model* model = ASSETS::Get_Model(rc.Model);
-		for(i32 mesh=0; mesh<model->NumMeshes; mesh++)
-		{
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glEnable(GL_DEPTH_TEST);
-			Draw_Mesh(*ASSETS::Get_Mesh(model->Meshes[mesh]),
-					 ASSETS::Get_Texture(rc.Texture),
-					 camera,
-					 rc.Pos,
-					 rc.Scale,
-					 rc.Quat,
-					 rc.Color,
-					 rc.ShaderType);
-			glDisable(GL_DEPTH_TEST);
-			glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
-		}
-	}
 //TODO(matthias): make this better.
 #define RENDER_CHARACTER_WIDTH 8
 #define RENDER_CHARACTER_HEIGHT 16
@@ -400,22 +378,6 @@ namespace SMOBA
 
 		u32 mvpLoc = glGetUniformLocation(ShaderIDs[shader],
 												 "mvp");
-
-
-
-		glUniform3f(materialAmbLoc,
-					mesh.material.ambient.x,
-					mesh.material.ambient.y,
-					mesh.material.ambient.z);
-		glUniform3f(materialDiffLoc,
-					mesh.material.diffuse.x,
-					mesh.material.diffuse.y,
-					mesh.material.diffuse.z);
-		glUniform3f(materialSpecLoc,
-					mesh.material.specular.x,
-					mesh.material.specular.y,
-					mesh.material.specular.z);
-		glUniform1f(materialShineLoc, mesh.material.shininess);
 		glUniform3f(lightAmbLoc, 1.f, 1.0f, 1.0f);
 		glUniform3f(lightDiffLoc, 0.5f, 0.5f, 0.5f);
 		glUniform3f(lightSpecLoc, 1.0f, 1.0f, 1.0f);
@@ -428,37 +390,13 @@ namespace SMOBA
 						   GL_FALSE,
 						   (GLfloat*)&mvp._m);
 
-		if(shader == PHONGLIGHT)
-		{
-			u32 diffMap  = glGetUniformLocation(ShaderIDs[shader],
-												"diffuseMap");
-			u32 specMap  = glGetUniformLocation(ShaderIDs[shader],
-												"specularMap");
-			u32 normMap  = glGetUniformLocation(ShaderIDs[shader],
-												"normalMap");
-
-			glUniform1i(diffMap, 0);
-			glUniform1i(specMap, 1);
-			glUniform1i(normMap, 2);
-
-			glActiveTexture(GL_TEXTURE0);
-			ASSETS::Get_Texture(mesh.diffuse)->Bind();
-
-			glActiveTexture(GL_TEXTURE1);
-			ASSETS::Get_Texture(mesh.specular)->Bind();
-
-			glActiveTexture(GL_TEXTURE2);
-			ASSETS::Get_Texture(mesh.normal)->Bind();
-
-		}
-		else
-		{
+		
 			glActiveTexture(GL_TEXTURE0);
 			texture->Bind();
-		}
+		
 		glBindVertexArray(mesh.VAO);
 		glDrawElements(GL_TRIANGLES,
-					   mesh.indices.Size,
+					   mesh.Indices,
 					   GL_UNSIGNED_INT,
 					   (void*)0);
 		glBindVertexArray(0);

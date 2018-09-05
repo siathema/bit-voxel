@@ -84,7 +84,10 @@ namespace SMOBA
 		static r32 wheelLevel = PI/4;
 
 		// NOTE(matthias): Debug code!
-		r32 speed = 0.05f;
+        r32 speed = 0.05f;
+
+        if(ip->Keys['e'])
+            speed *= 4;
 
 		if (ip->Keys['w'])
 			Pos += speed * -Direction;

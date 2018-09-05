@@ -65,24 +65,31 @@ namespace SMOBA
 	Voxel_World* Generate_Voxel_World()
 	{
 		Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
-		u32 numChunks = CHUNK_GEN_RADIUS * CHUNK_GEN_RADIUS;
+		u32 numChunks = (CHUNK_GEN_DIAMETER) * (CHUNK_GEN_DIAMETER);
 
-		i32 currentChunkX = -(CHUNK_GEN_RADIUS/2);
-		i32 currentChunkY = -(CHUNK_GEN_RADIUS/2);
+		i32 currentChunkX = -(CHUNK_GEN_RADIUS);
+		i32 currentChunkY = -(CHUNK_GEN_RADIUS);
+        r32 radiusSquared = CHUNK_GEN_RADIUS * CHUNK_GEN_RADIUS;
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
-			u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
-			Generate_HeightMap_Voxel_Chunk(heightMap, &(result->Chunks[chunk]));
-			//result->Chunks[chunk].ChunkID = chunk;
-			result->Chunks[chunk].WorldPosX = currentChunkX;
-			result->Chunks[chunk].WorldPosY = currentChunkY;
-            result->ChunkSize++;
-            Voxel_Chunk_Write_Hash(currentChunkX, currentChunkY, &result->Chunks[chunk], (HashNode**)&result->ChunkHashMap);
-            Dig_Caves(result, currentChunkX, currentChunkY);
+            r32 distanceSquared = currentChunkX*currentChunkX + currentChunkY*currentChunkY;
+            //if(distanceSquared <= radiusSquared)
+            {
+                u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
+                Generate_HeightMap_Voxel_Chunk(heightMap, &(result->Chunks[chunk]));
+                result->Chunks[chunk].MeshID = 0;
+				result->Chunks[chunk].generate = true;
+                result->Chunks[chunk].WorldPosX = currentChunkX;
+                result->Chunks[chunk].WorldPosY = currentChunkY;
+                result->ChunkSize++;
+                Voxel_Chunk_Write_Hash(currentChunkX, currentChunkY, &result->Chunks[chunk], (HashNode**)&result->ChunkHashMap);
+                Dig_Caves(result, currentChunkX, currentChunkY);
+                free(heightMap);
+            }
 			currentChunkX++;
-			if (currentChunkX == (CHUNK_GEN_RADIUS/2))
+			if (currentChunkX == (CHUNK_GEN_RADIUS))
 			{
-				currentChunkX = -(CHUNK_GEN_RADIUS/2);
+				currentChunkX = -(CHUNK_GEN_RADIUS);
 				currentChunkY++;
 			}
 		}
@@ -115,22 +122,6 @@ namespace SMOBA
 		}
 		return result;
 	}
-
-#if 0
-	Voxel_Chunk* Generate_Debug_Voxel_Chunk()
-	{
-		Voxel_Chunk* result = (Voxel_Chunk*)calloc(1, sizeof(Voxel_Chunk));
-
-		u32 level = CHUNK_VOLUME - (CHUNK_WIDTH*CHUNK_WIDTH)*(CHUNK_HEIGHT / 2);
-		for (i32 i = 0; i < level; i++)
-		{
-			if (i % 2 == 0)
-				result->Blocks[i] = 1;
-		}
-
-		return result;
-	}
-#endif
 
     Voxel_Block* Genertate_Voxel_Block(Voxel_Block* block, BlockType type)
     {
@@ -173,148 +164,6 @@ namespace SMOBA
 		return chunk;
 	}
 
-	void Generate_Voxel_Indices(Array<u32>* indices)
-	{
-		u32 Cube_Initial_Vertex = 0;
-		u32 Vertex_Width = CHUNK_WIDTH + 1;
-		for (i32 level = 0; level < CHUNK_HEIGHT; level++)
-		{
-			for (i32 row = 0; row < CHUNK_WIDTH; row++)
-			{
-				for (i32 col = 0; col < CHUNK_WIDTH; col++)
-				{
-					//__builtin_debugtrap();
-					//printf("%d\n", Cube_Initial_Vertex);
-					// NOTE(matthias): forward face
-					u32 LLFIndex = Cube_Initial_Vertex;
-					u32 LRFIndex = Cube_Initial_Vertex + 1;
-					u32 URFIndex = Cube_Initial_Vertex + (Vertex_Width*Vertex_Width) + 1;
-					u32 ULFIndex = Cube_Initial_Vertex + (Vertex_Width*Vertex_Width);
-					u32 ULBIndex = Cube_Initial_Vertex + (Vertex_Width*Vertex_Width) + (Vertex_Width);
-					u32 URBIndex = Cube_Initial_Vertex + (Vertex_Width*Vertex_Width) + Vertex_Width + 1;
-					u32 LLBIndex = Cube_Initial_Vertex + Vertex_Width;
-					u32 LRBIndex = Cube_Initial_Vertex + Vertex_Width + 1;
-
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): lower right forward vertex;
-						indices->Add(LRFIndex);
-						// NOTE(matthias): upper right forward vertex;
-						indices->Add(URFIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): upper left forward vertex;
-						indices->Add(ULFIndex);
-						// NOTE(matthias): upper right forward vertex;
-						indices->Add(URFIndex);
-					}
-
-					// NOTE(matthias): Left face
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): lower left back vertex;
-						indices->Add(LLBIndex);
-						// NOTE(matthias): upper left back vertex;
-						indices->Add(ULBIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): upper left forward vertex;
-						indices->Add(ULFIndex);
-						// NOTE(matthias): lower left back vertex
-						indices->Add(ULBIndex);
-					}
-
-					// NOTE(matthias): back face
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): lower left back vertex
-						indices->Add(LLBIndex);
-						// NOTE(matthias): lower right back vertex;
-						indices->Add(LRBIndex);
-						// NOTE(matthias): upper right back vertex;
-						indices->Add(URBIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): lower left back vertex
-						indices->Add(LLBIndex);
-						// NOTE(matthias): upper left back vertex;
-						indices->Add(ULBIndex);
-						// NOTE(matthias): upper right back vertex;
-						indices->Add(URBIndex);
-					}
-
-					// NOTE(matthias): right face
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): lower right back vertex
-						indices->Add(LRBIndex);
-						// NOTE(matthias): lower right forward vertex;
-						indices->Add(LRFIndex);
-						// NOTE(matthias): upper right forward vertex;
-						indices->Add(URFIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): lower right back vertex
-						indices->Add(LRBIndex);
-						// NOTE(matthias): upper right back vertex;
-						indices->Add(URBIndex);
-						// NOTE(matthias): upper right forward vertex;
-						indices->Add(URFIndex);
-					}
-
-					// NOTE(matthias): top face
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): upper left forward vertex
-						indices->Add(ULFIndex);
-						// NOTE(matthias): upper left back vertex;
-						indices->Add(ULBIndex);
-						// NOTE(matthias): upper right back vertex;
-						indices->Add(URBIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): upper left forward vertex
-						indices->Add(ULFIndex);
-						// NOTE(matthias): upper right forward vertex;
-						indices->Add(URFIndex);
-						// NOTE(matthias): upper right back vertex;
-						indices->Add(URBIndex);
-					}
-
-					// NOTE(matthias): bottom face
-					{
-						// NOTE(matthias): First Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): lower lefer back vertex;
-						indices->Add(LLBIndex);
-						// NOTE(matthias): lower right back vertex;
-						indices->Add(LRBIndex);
-
-						// NOTE(matthias): Second Triangle
-						// NOTE(matthias): lower left forward vertex
-						indices->Add(LLFIndex);
-						// NOTE(matthias): lower rigth forward vertex;
-						indices->Add(LRFIndex);
-						// NOTE(matthias): lower right forward vertex;
-						indices->Add(LRBIndex);
-					}
-
-					Cube_Initial_Vertex += 1;
-				}
-				Cube_Initial_Vertex += 1;//row == CHUNK_WIDTH-1 ? 2 : 1;
-			}
-			Cube_Initial_Vertex += Vertex_Width;
-		}
-	}
 //Front Right Top
 	static Vertex cube[] = {
         // NOTE(matthias): Front 0
@@ -423,9 +272,11 @@ namespace SMOBA
 		}
 	}
 
-	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY)
+    void Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY)
 	{
         Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
+        if(chunk == 0)
+            return;
         Voxel_Chunk* LeftChunk = Voxel_Chunk_Read_Hash(chunkX-1, chunkY, (HashNode**)&world->ChunkHashMap);
         Voxel_Chunk* RightChunk = Voxel_Chunk_Read_Hash(chunkX + 1, chunkY, (HashNode**)&world->ChunkHashMap);
         Voxel_Chunk* FrontChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY-1, (HashNode**)&world->ChunkHashMap);
@@ -556,26 +407,88 @@ namespace SMOBA
 		Array<u32> indices;
 		for (i32 i = 0; i < vertices.Size; i++) indices.Add(i);
 
-		Mesh* mesh = new Mesh;
-		mesh->indices = indices;
-		mesh->vertices = vertices;
-		mesh->GenVertexObjects();
-		Material mat = {};
-		mat.ambient = vec3(0.135f, 0.2225f, 0.1575f);
-		mat.diffuse = vec3(0.54f, 0.89f, 0.63f);
-		mat.specular = vec3(0.316228f, 0.316228f, 0.316228f);
-		mat.shininess = 0.1f;
-		mesh->material = mat;
+		Mesh mesh = Gen_Mesh(vertices, indices);
+		chunk->generate = false;
 
-		return mesh;
+        if(chunk->MeshID == 0)
+        {
+            ASSETS::Meshes.Add(mesh);
+            chunk->MeshID = ASSETS::Meshes.Size - 1;
+        }
+        else
+        {
+            ASSETS::Meshes[chunk->MeshID] = mesh;
+        }
+
+		return;
 	}
 
 	void Update_Voxel_World(Voxel_World* world, vec3 playerPos)
 	{
 		i32 chunkX = playerPos.x / (BLOCK_METER * CHUNK_WIDTH);
 		i32 chunkY = playerPos.z / (BLOCK_METER * CHUNK_WIDTH);
-		printf("CHUNK: x: %d, y: %d\n", chunkX, chunkY);
+        r32 radiusSquared = CHUNK_GEN_RADIUS*CHUNK_GEN_RADIUS;
+
+        for(i32 y=-CHUNK_GEN_RADIUS; y < CHUNK_GEN_RADIUS; y++)
+        {
+            for(i32 x=-CHUNK_GEN_RADIUS; x < CHUNK_GEN_RADIUS; x++)
+            {
+                r32 lengthSquared = x*x + y*y;
+                //if(lengthSquared <= radiusSquared)
+                {
+                    i32 currentX = x + chunkX;
+                    i32 currentY = y + chunkY;
+
+                    Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(currentX, currentY, (HashNode**)&world->ChunkHashMap);
+                    if(chunk == 0)
+                    {
+                        printf("Generating Chunk @ (%d, %d)\n", currentX, currentY);
+                        u32 ChunkIndex = world->ChunkSize;
+                        s_assert(ChunkIndex < CHUNK_MAX, "Maximum chunck limit reached");
+                        world->Chunks[ChunkIndex].MeshID = 0;
+                        u8* heightMap = Generate_Chunk_HeightMap(currentX, currentY);
+                        Generate_HeightMap_Voxel_Chunk(heightMap, &(world->Chunks[ChunkIndex]));
+                        world->Chunks[ChunkIndex].generate = true;
+                        world->Chunks[ChunkIndex].WorldPosX = currentX;
+                        world->Chunks[ChunkIndex].WorldPosY = currentY;
+                        world->ChunkSize++;
+                        Voxel_Chunk_Write_Hash(currentX, currentY, &world->Chunks[ChunkIndex], (HashNode**)&world->ChunkHashMap);
+                        Dig_Caves(world, currentX, currentY);
+                        free(heightMap);
+                    }
+                }
+            }
+        }
 	}
+
+    void Voxel_World_Gen_Chunk_Meshes(Voxel_World* world)
+    {
+        for (i32 chunk = 0; chunk < world->ChunkSize; chunk++)
+        {
+            Voxel_Chunk* CurrentChunk = &world->Chunks[chunk];
+            if(CurrentChunk->generate)
+            {
+
+                i32 x = CurrentChunk->WorldPosX;
+                i32 y = CurrentChunk->WorldPosY;
+                Generate_Voxel_Chunk_Mesh(world, x, y);
+
+                i32 dir[4][2] = {
+                    {x+1, y  },
+                    {x-1, y  },
+                    {x  , y+1},
+                    {x  , y-1}
+                };
+
+#if 1
+                for(i32 i=0; i<4; i++)
+                {
+                    Generate_Voxel_Chunk_Mesh(world, dir[i][0], dir[i][1]);
+                }
+#endif
+            }
+        }
+    }
 
 	void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld) {
 		i32 numChunks = voxelWorld->ChunkSize;
@@ -583,20 +496,22 @@ namespace SMOBA
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
 			Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[chunk];
-			RenderCommand rc = {};
-			rc.RenderType = MESHRENDER;
-			rc.ShaderType = SIMPLEMESH;
-			rc.Mesh = CurrentChunk->MeshID;
-			rc.Model = 0;
-			rc.Texture = ASSETS::TEXTURES::TileMap;
-			rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			r32 gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH);
-			r32 gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);
-			rc.Pos = vec3(gamePositionX, 0.0f, gamePositionY);
-			rc.Scale = vec3(1.f, 1.f, 1.f);
-			rc.Quat = quat::zero;//.from_angle_axis(toRadians(90.0f), vec3(1.0f, 0.0f, 0.0f));
-			r32 rot = 0.0f;
-			rq->Push(rc);
+            if(CurrentChunk->MeshID)
+            {
+                RenderCommand rc = {};
+                rc.RenderType = MESHRENDER;
+                rc.ShaderType = SIMPLEMESH;
+                rc.Mesh = CurrentChunk->MeshID;
+                rc.Texture = ASSETS::TEXTURES::TileMap;
+                rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                r32 gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH);
+                r32 gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);
+                rc.Pos = vec3(gamePositionX, 0.0f, gamePositionY);
+                rc.Scale = vec3(1.f, 1.f, 1.f);
+                rc.Quat = quat::zero;//.from_angle_axis(toRadians(90.0f), vec3(1.0f, 0.0f, 0.0f));
+                r32 rot = 0.0f;
+                rq->Push(rc);
+            }
 		}
 	}
 }

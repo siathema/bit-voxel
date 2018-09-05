@@ -12,36 +12,14 @@ namespace SMOBA
       r32 x,y,z,u,v,nx,ny,nz,tx,ty,tz;
     };
 
-    struct Material
-    {
-        vec3 ambient;
-        vec3 diffuse;
-        vec3 specular;
-        r32 shininess;
-    };
-
     struct Mesh
     {
         u32 VAO;
         u32 VBO;
         u32 EBO;
-        Material material;
-        ID diffuse;
-        ID specular;
-        ID normal;
-        Array<Vertex> vertices;
-        Array<u32> indices;
+        u32 Vertices;
+        u32 Indices;
+     };
 
-        Mesh();
-        ~Mesh();
-        void GenVertexObjects();
-    };
-
-    struct Model
-    {
-        u32 NumMeshes;
-        Array<ID> Meshes;
-        Model():Meshes() {}
-    };
-
+    Mesh Gen_Mesh(Array<Vertex>& verts, Array<u32>& indices);
 }

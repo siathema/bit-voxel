@@ -12,6 +12,7 @@ namespace SMOBA
 #define CHUNK_MAX 256
 #define CHUNK_MAX_ACTIVE 32;
 #define CHUNK_GEN_RADIUS 4
+#define CHUNK_GEN_DIAMETER CHUNK_GEN_RADIUS * 2
 #define CHUNK_WIDTH 32
 #define CHUNK_HEIGHT 256
 #define CHUNK_VOLUME CHUNK_WIDTH*CHUNK_WIDTH*CHUNK_HEIGHT
@@ -40,7 +41,8 @@ namespace SMOBA
 
     struct Voxel_Chunk
     {
-        //ID ChunkID;
+        b8 generate;
+		b8 Active;
         ID MeshID;
         i32 WorldPosX;
         i32 WorldPosY;
@@ -60,7 +62,8 @@ namespace SMOBA
     u8* Generate_Chunk_HeightMap(i32 chunkPosX, i32 chunkPosY);
     //Voxel_Chunk* Generate_Debug_Voxel_Chunk();
     Voxel_Chunk* Generate_HeightMap_Voxel_Chunk(u8* heightMap, Voxel_Chunk* chunk);
-	Mesh* Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY);
+	void Generate_Voxel_Chunk_Mesh(Voxel_World* world, i32 chunkX, i32 chunkY);
 	void Update_Voxel_World(Voxel_World* world, vec3 playerPos);
+    void Voxel_World_Gen_Chunk_Meshes(Voxel_World* world);
     void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld);
 }

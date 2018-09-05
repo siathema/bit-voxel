@@ -56,7 +56,7 @@ namespace SMOBA
 	{
 		ViewportInfo viewPortInfo = {};
 		viewPortInfo.ScreenHeight = 720;
-		viewPortInfo.ScreenWidth = 1080;
+		viewPortInfo.ScreenWidth = 1280;
 		viewPortInfo.Vsync = true;
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -169,7 +169,7 @@ namespace SMOBA
 						viewPortInfo.ScreenWidth,
 						viewPortInfo.ScreenHeight,
 						0.01f,
-						100.0f);
+						1000.0f);
 		cameras[1].SetPerspective();
 		cameras2[0] = cameras[0];
 		cameras2[1] = cameras[1];
@@ -302,6 +302,7 @@ namespace SMOBA
 			GlobalSync->Ip = Ip2;
 			Ip2 = tempIP;
 
+			Voxel_World_Gen_Chunk_Meshes(GlobalSync->VoxelWorld);
 			//NOTE(matthias): Timing stuff
 			u32 endTime = SDL_GetTicks();
 			elapsedTime = endTime - startTime;

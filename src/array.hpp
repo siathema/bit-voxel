@@ -96,7 +96,10 @@ namespace SMOBA
 			Data = (T*)calloc(Reserve, sizeof(T));
 		}
 
-		~Array() {}// if(Data) free(Data); }
+		void Free_Data() { 
+			if(Data) free(Data);
+			Size = Reserve = 0;
+		}
 
 		const T& operator[](i32 i) const {
 			s_assert(i >= 0 && i < Size);

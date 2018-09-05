@@ -15,9 +15,7 @@ namespace SMOBA
 		void Unload_Assets();
 		Texture2D* Get_Texture(ID assetID);
 		Mesh* Get_Mesh(ID assetID);
-		Model* Get_Model(ID assetID);
 		extern Array<Texture2D> Textures;
 		extern Array<Mesh> Meshes;
-		extern Array<Model> Models;
 	}
 }
