@@ -31,7 +31,7 @@ namespace SMOBA
 		FILLRECTANGLE,
 		SIMPLEMESH,
 		FINAL,
-		PHONGLIGHT,
+		SIMPLE3DCOLOR,
 		NONE,
 		SHADERCOUNT
 	};
@@ -42,6 +42,7 @@ namespace SMOBA
 		STRINGRENDER,
 		TEXTRECTRENDER,
 		MESHRENDER,
+        SIMPLE3DDEBUGLINES,
 		RENDERCOUNT
 	};
 
@@ -52,6 +53,8 @@ namespace SMOBA
 		ID Mesh;
 		ID Texture;
 		iRect TextureRect;
+        vec3 Point1;
+        vec3 Point2;
 		vec4 Color;
 		vec3 Pos;
 		vec3 Scale;
@@ -106,6 +109,10 @@ namespace SMOBA
 					  quat& rot,
 					  vec4& color,
 					  ShaderType shader=SIMPLEMESH);
+		void Draw_3d_Debug_Line(vec3 point1,
+			vec3 point2,
+			vec4 color,
+			Camera& camera);
 		void Init_Render_Data();
 		void Load_Shaders();
 	};

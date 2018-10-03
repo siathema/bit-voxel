@@ -70,13 +70,13 @@ namespace SMOBA
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
 							SDL_GL_CONTEXT_PROFILE_CORE);
 
-        SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+        /*SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);*/
 
         //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
         //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
@@ -177,9 +177,9 @@ namespace SMOBA
 
         //TODO: clean this up.
         // maybe create debug ui.
-		char format[] = "FPS: %f Camera x:%f y:%f z:%f Pitch: %f Yaw: %f fov: %f";
+		char format[] = "FPS: %f Camera x:%f y:%f z:%f Chunk: (x:%d, z:%d) Pitch: %f Yaw: %f fov: %f";
 		char debugMessage[256];
-		sprintf(debugMessage, format, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		sprintf(debugMessage, format, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0, 0.0f, 0.0f, 0.0f);
 		const u32 targetTime = 1000 / 60;
 		u32 elapsedTime;
 
@@ -215,12 +215,25 @@ namespace SMOBA
 			elapsedTime = SDL_GetTicks() - startTime;
 			r32 SecondsPerFrame = (1.0f / 1000) * elapsedTime;
 			r32 FPS = 1.0f / SecondsPerFrame;
+            i32 chunkX = cameras[1].Pos.x / (BLOCK_METER * CHUNK_WIDTH);
+            if(cameras[1].Pos.x < 0.0f)
+            {
+                chunkX -= chunkX != 0 ? 0 : 1;
+            }
+            i32 chunkZ = cameras[1].Pos.z / (BLOCK_METER * CHUNK_WIDTH);
+            if(cameras[1].Pos.z < 0.0f)
+            {
+                chunkZ -= chunkZ != 0 ? 0 : 1;
+            }
+
 			sprintf(debugMessage,
 					format,
 					FPS,
 					cameras[1].Pos.x,
 					cameras[1].Pos.y,
 					cameras[1].Pos.z,
+                    chunkX,
+                    chunkZ,
 					cameras[1].Pitch,
 					cameras[1].Yaw,
 					cameras[1].Fov);

@@ -22,4 +22,5 @@ namespace SMOBA
      };
 
     Mesh Gen_Mesh(Array<Vertex>& verts, Array<u32>& indices);
+    void Destroy_Mesh(Mesh* mesh);
 }

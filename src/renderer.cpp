@@ -218,6 +218,14 @@ namespace SMOBA
                 //glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 				break;
+
+            case SIMPLE3DDEBUGLINES:
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glEnable(GL_DEPTH_TEST);
+                Draw_3d_Debug_Line(rc.Point1, rc.Point2, rc.Color, camera[1]);
+				glDisable(GL_DEPTH_TEST);
+                glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
+                break;
 			default:
 				s_assert(false, "Invalid Render Command!\n");
 			}
@@ -390,16 +398,61 @@ namespace SMOBA
 						   GL_FALSE,
 						   (GLfloat*)&mvp._m);
 
-		
-			glActiveTexture(GL_TEXTURE0);
-			texture->Bind();
-		
+        glActiveTexture(GL_TEXTURE0);
+        texture->Bind();
 		glBindVertexArray(mesh.VAO);
 		glDrawElements(GL_TRIANGLES,
 					   mesh.Indices,
 					   GL_UNSIGNED_INT,
 					   (void*)0);
 		glBindVertexArray(0);
+	}
+
+	void Renderer::Draw_3d_Debug_Line(vec3 point1,
+		vec3 point2,
+		vec4 color,
+		Camera& camera)
+	{
+
+		
+		r32 points[] = {
+			point1.x, point1.y, point1.z,
+			point2.x, point2.y, point2.z
+		};
+		
+
+		//r32* points = (r32*)malloc(sizeof(r32) * 14);
+
+		u32 indices[] = { 0,1 };
+		u32 VAO, VBO;
+
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(points) , points, GL_STATIC_DRAW);
+
+        glBindVertexArray(VAO);
+		glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(r32), (void*)0);
+		
+		//glBindVertexArray(0);
+
+        glUseProgram(ShaderIDs[SIMPLE3DCOLOR]);
+        mat4 mvp = camera.View * camera.Projection;
+
+		u32 colorLoc = glGetUniformLocation(ShaderIDs[SIMPLE3DCOLOR], "inColor");
+        u32 mvpLoc = glGetUniformLocation(ShaderIDs[SIMPLE3DCOLOR], "mvp");
+		glUniform4f(colorLoc, color.x, color.y, color.z, color.w);
+        glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, (GLfloat*)&mvp._m);
+		glLineWidth(2.0);
+		//glBindVertexArray(VAO);
+
+        glDrawArrays(GL_LINES, 0, 2);
+
+        glBindVertexArray(0);
+        glDeleteBuffers(1, &VBO);
+        glDeleteVertexArrays(1, &VAO);
+
 	}
 
 	void Renderer::Draw_Texture(Texture2D *texture,
@@ -672,9 +725,9 @@ namespace SMOBA
 		ShaderIDs[FINAL] = id;
 
 		//PHONGLIGHT
-		vs = Get_Source_From_File("assets/shaders/PhongMesh.vs");
-		fs = Get_Source_From_File("assets/shaders/PhongMesh.frag");
+		vs = Get_Source_From_File("assets/shaders/Simple3dColor.vertex");
+		fs = Get_Source_From_File("assets/shaders/Simple3dColor.frag");
 		id = Create_Shader_Program(vs, fs);
-		ShaderIDs[PHONGLIGHT] = id;
+		ShaderIDs[SIMPLE3DCOLOR] = id;
 	}
 }

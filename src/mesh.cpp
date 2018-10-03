@@ -1,4 +1,5 @@
 #include "mesh.hpp"
+#include "sAssert.hpp"
 #include <GL/glew.h>
 
 namespace SMOBA
@@ -69,5 +70,14 @@ namespace SMOBA
 
         return result;
 
+    }
+
+    void Destroy_Mesh(Mesh* mesh)
+    {
+        s_assert(mesh, "Null Pointer");
+
+        glDeleteBuffers(1, &mesh->VBO);
+        glDeleteBuffers(1, &mesh->EBO);
+        glDeleteVertexArrays(1, &mesh->VAO);
     }
 }

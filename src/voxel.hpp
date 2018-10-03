@@ -33,6 +33,33 @@ namespace SMOBA
         BlockTypeCount
     };
 
+    const u32 CHUNK_MAGIC = 'BITV';
+    #define CHUNK_FILE_INDEX_COUNT 1024
+
+#pragma pack(push, 1)
+    struct Chunk_File_Header
+    {
+        const u32 Magic = CHUNK_MAGIC;
+        u64 Size; //NOTE(matthias): Size of entire file.
+        u64 IndexOffset; //NOTE(matthias): File index location starting from the end of the header.
+    };
+
+    struct Chunk_Data_Header
+    {
+
+    };
+
+    struct Chunk_File_Index
+    {
+        u16 NumEntries;
+        struct Entry
+        {
+            u64 Offset;
+            i32 X, Y;
+        }Entries[CHUNK_FILE_INDEX_COUNT];
+    };
+#pragma pack(pop)
+
     struct Voxel_Block
     {
         BlockType BlockType;
@@ -47,6 +74,12 @@ namespace SMOBA
         i32 WorldPosX;
         i32 WorldPosY;
         Voxel_Block Blocks[CHUNK_VOLUME];
+    };
+
+    struct Voxel_Frozen_Chunk
+    {
+		u32 Size;
+        u8* Data;
     };
 
     struct Voxel_World

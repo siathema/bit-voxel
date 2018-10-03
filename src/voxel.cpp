@@ -2,9 +2,11 @@
 #include "assets.hpp"
 #include "array.hpp"
 #include "stdlib.h"
+#include "stdio.h"
 
 namespace SMOBA
 {
+    
     Voxel_Chunk* Voxel_Chunk_Read_Hash(i32 chunkX, i32 chunkY, HashNode** table)
     {
 		u64 key = (u64)chunkX << 32;
@@ -25,6 +27,93 @@ namespace SMOBA
         HashDelete((u8*)(&key), sizeof(u64), table);
     }
 
+	Voxel_Frozen_Chunk Voxel_Chunk_Freeze(Voxel_Chunk* chunk)
+	{
+
+		Voxel_Frozen_Chunk result = { sizeof(Voxel_Chunk), (u8*)chunk };
+		Mesh* mesh = &ASSETS::Meshes[chunk->MeshID];
+		//Destroy_Mesh(mesh);
+		//TODO(matthias): Remember to reuse Mesh slot.
+		return result;
+	}
+
+	void Voxel_Chunk_Write_To_Disk(i32 chunkX, i32 chunkY, Voxel_World* world)
+	{
+		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
+		Voxel_Frozen_Chunk frozenChunk = Voxel_Chunk_Freeze(chunk);
+
+		Chunk_File_Header header = {};
+		Chunk_File_Index index;
+		u64 chunkFileLoc = sizeof(Chunk_File_Header);
+
+		FILE* file = fopen("test.dat", "r+b");
+		if (file != 0)
+		{
+			fread(&header, sizeof(Chunk_File_Header), 1, file);
+			s_assert(header.Magic == CHUNK_MAGIC, "Not a valid ChunkFile!");
+			fseek(file, header.IndexOffset, SEEK_SET);
+			fread(&index, sizeof(Chunk_File_Index), 1, file);
+		}
+		else
+		{
+			file = fopen("test.dat", "w+b");
+			header.IndexOffset = sizeof(Chunk_File_Header);
+			index.NumEntries = 0;
+		}
+		bool found = false;
+
+		if (index.NumEntries + 1 < CHUNK_FILE_INDEX_COUNT )
+		{
+			if (index.NumEntries - 1 != 0)
+			{
+				for (i32 entry = 0; entry < index.NumEntries; entry++)
+				{
+					if (index.Entries[entry].X == chunkX && index.Entries[entry].Y == chunkY)
+					{
+						chunkFileLoc += index.Entries[entry].Offset;
+						found = true;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			s_assert(false, "NOT IMPLEMENTED");
+		}
+
+		if (!found)
+		{
+			index.Entries[index.NumEntries].X = chunkX;
+			index.Entries[index.NumEntries].Y = chunkY;
+			chunkFileLoc = index.Entries[index.NumEntries].Offset = sizeof(Chunk_File_Header) + header.Size;
+			header.Size += frozenChunk.Size;
+			header.IndexOffset += frozenChunk.Size;
+			index.NumEntries++;
+		}
+		if (index.NumEntries - 1 == 0)
+		{
+			fseek(file, 0, SEEK_SET);
+			fwrite(&header, sizeof(Chunk_File_Header), 1, file);
+		}
+		fseek(file, chunkFileLoc, SEEK_SET);
+		fwrite(frozenChunk.Data, 1, frozenChunk.Size, file);
+		if (!found)
+		{
+			fseek(file, 0, SEEK_SET);
+			fwrite(&header, sizeof(Chunk_File_Header), 1, file);
+			fseek(file, header.IndexOffset, SEEK_SET);
+			fwrite(&index, sizeof(Chunk_File_Index), 1, file);
+		}
+		fclose(file);
+
+	}
+
+	void Voxel_Chunk_Read_From_Disk(i32 chunkX, i32 chunkY, Voxel_World* world)
+	{
+
+	}
+
 	void Remove_Block(Voxel_World* world, i32 chunkX, i32 chunkY, i32 blockX, i32 blockY, i32 blockZ)
 	{
 		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
@@ -36,7 +125,7 @@ namespace SMOBA
 	void Dig_Caves(Voxel_World* world, i32 chunkX, i32 chunkY)
 	{
 		PerlinData p = Init_Perlin(94302831);
-		r64 genStep = 0.06;
+		r64 genStep = 0.09;
 
         Voxel_Chunk* currentChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
 
@@ -52,7 +141,7 @@ namespace SMOBA
                         Octave_Noise_Zero_To_One(stepX,
                                                  stepY,
                                                  z*genStep,
-                                                 1, &p);
+                                                 3, &p);
                     if(heightDouble < 0.25)
                     {
                         Remove_Block(world, chunkX, chunkY, x, y, z);
@@ -62,9 +151,24 @@ namespace SMOBA
         }
 	}
 
+    void Gen_Chunk(Voxel_World* world, i32 chunkX, i32 chunkY)
+    {
+        u32 chunk = world->ChunkSize;
+        u8* heightMap = Generate_Chunk_HeightMap(chunkX, chunkY);
+        Generate_HeightMap_Voxel_Chunk(heightMap, &(world->Chunks[chunk]));
+        world->Chunks[chunk].MeshID = 0;
+        world->Chunks[chunk].generate = true;
+        world->Chunks[chunk].WorldPosX = chunkX;
+        world->Chunks[chunk].WorldPosY = chunkY;
+        world->ChunkSize++;
+        Voxel_Chunk_Write_Hash(chunkX, chunkY, &world->Chunks[chunk], (HashNode**)&world->ChunkHashMap);
+        Dig_Caves(world, chunkX, chunkY);
+        free(heightMap);
+    }
+
 	Voxel_World* Generate_Voxel_World()
 	{
-		Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
+        Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
 		u32 numChunks = (CHUNK_GEN_DIAMETER) * (CHUNK_GEN_DIAMETER);
 
 		i32 currentChunkX = -(CHUNK_GEN_RADIUS);
@@ -73,18 +177,9 @@ namespace SMOBA
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
             r32 distanceSquared = currentChunkX*currentChunkX + currentChunkY*currentChunkY;
-            //if(distanceSquared <= radiusSquared)
+            if(distanceSquared <= radiusSquared)
             {
-                u8* heightMap = Generate_Chunk_HeightMap(currentChunkX, currentChunkY);
-                Generate_HeightMap_Voxel_Chunk(heightMap, &(result->Chunks[chunk]));
-                result->Chunks[chunk].MeshID = 0;
-				result->Chunks[chunk].generate = true;
-                result->Chunks[chunk].WorldPosX = currentChunkX;
-                result->Chunks[chunk].WorldPosY = currentChunkY;
-                result->ChunkSize++;
-                Voxel_Chunk_Write_Hash(currentChunkX, currentChunkY, &result->Chunks[chunk], (HashNode**)&result->ChunkHashMap);
-                Dig_Caves(result, currentChunkX, currentChunkY);
-                free(heightMap);
+                Gen_Chunk(result, currentChunkX, currentChunkY);
             }
 			currentChunkX++;
 			if (currentChunkX == (CHUNK_GEN_RADIUS))
@@ -167,50 +262,50 @@ namespace SMOBA
 //Front Right Top
 	static Vertex cube[] = {
         // NOTE(matthias): Front 0
-		{ -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f,0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f,0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f, 0.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP, 0.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP, 0.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP, 0.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
         // NOTE(matthias): Back 6
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f,  BLOCK_STEP, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f,  BLOCK_STEP, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f,  BLOCK_STEP, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP,  BLOCK_STEP, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 0.0f },
 
         // NOTE(matthias): Left 12
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP,  BLOCK_STEP, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP, 0.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP,  BLOCK_STEP, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f,  BLOCK_STEP, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f },
 
         // NOTE(matthias): Right 18
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP, 0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f,  BLOCK_STEP, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f, 0.0f },
         // NOTE(matthias): Bottom 24
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f,  BLOCK_STEP, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f, 0.0f, 1.0f, 1.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP, 0.0f,  BLOCK_STEP, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f,  BLOCK_STEP, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
 
         // NOTE(matthias): top 30
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        {  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-        { -BLOCK_STEP/2.0f,  BLOCK_STEP/2.0f, -BLOCK_STEP/2.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP, 0.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        {  BLOCK_STEP,  BLOCK_STEP,  BLOCK_STEP, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP,  BLOCK_STEP, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,  BLOCK_STEP, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
 	};
 
     static i32 UVs[] = {
@@ -429,12 +524,19 @@ namespace SMOBA
 		i32 chunkY = playerPos.z / (BLOCK_METER * CHUNK_WIDTH);
         r32 radiusSquared = CHUNK_GEN_RADIUS*CHUNK_GEN_RADIUS;
 
+		static bool start = true;
+		if (start)
+		{
+			start = false;
+			Voxel_Chunk_Write_To_Disk(chunkX, chunkY, world);
+		}
+
         for(i32 y=-CHUNK_GEN_RADIUS; y < CHUNK_GEN_RADIUS; y++)
         {
             for(i32 x=-CHUNK_GEN_RADIUS; x < CHUNK_GEN_RADIUS; x++)
             {
                 r32 lengthSquared = x*x + y*y;
-                //if(lengthSquared <= radiusSquared)
+                if(lengthSquared <= radiusSquared)
                 {
                     i32 currentX = x + chunkX;
                     i32 currentY = y + chunkY;
@@ -443,18 +545,7 @@ namespace SMOBA
                     if(chunk == 0)
                     {
                         printf("Generating Chunk @ (%d, %d)\n", currentX, currentY);
-                        u32 ChunkIndex = world->ChunkSize;
-                        s_assert(ChunkIndex < CHUNK_MAX, "Maximum chunck limit reached");
-                        world->Chunks[ChunkIndex].MeshID = 0;
-                        u8* heightMap = Generate_Chunk_HeightMap(currentX, currentY);
-                        Generate_HeightMap_Voxel_Chunk(heightMap, &(world->Chunks[ChunkIndex]));
-                        world->Chunks[ChunkIndex].generate = true;
-                        world->Chunks[ChunkIndex].WorldPosX = currentX;
-                        world->Chunks[ChunkIndex].WorldPosY = currentY;
-                        world->ChunkSize++;
-                        Voxel_Chunk_Write_Hash(currentX, currentY, &world->Chunks[ChunkIndex], (HashNode**)&world->ChunkHashMap);
-                        Dig_Caves(world, currentX, currentY);
-                        free(heightMap);
+                        Gen_Chunk(world, currentX, currentY);
                     }
                 }
             }
@@ -511,6 +602,30 @@ namespace SMOBA
                 rc.Quat = quat::zero;//.from_angle_axis(toRadians(90.0f), vec3(1.0f, 0.0f, 0.0f));
                 r32 rot = 0.0f;
                 rq->Push(rc);
+            }
+            b8 debug = true;
+            if(debug)
+            {
+                for(i32 i=0; i<4; i++)
+                {
+					r32 gamePositionX, gamePositionY;
+                    RenderCommand rc = {};
+                    rc.RenderType = SIMPLE3DDEBUGLINES;
+                    rc.Color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
+                    if(i < 2)
+                    {
+                        gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH +(BLOCK_METER*CHUNK_WIDTH*i));
+                        gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);
+                    }
+                    else
+                    {
+                        gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH +(BLOCK_METER*CHUNK_WIDTH*(i-2)));
+                        gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH) +(BLOCK_METER*CHUNK_WIDTH);
+                    }
+                    rc.Point1 = vec3(gamePositionX, 0.0f, gamePositionY);
+                    rc.Point2 = vec3(gamePositionX, 256.0f, gamePositionY);
+                    rq->Push(rc);
+                }
             }
 		}
 	}
