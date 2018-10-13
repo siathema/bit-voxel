@@ -21,7 +21,7 @@ inline void s_assert(bool x, const char* reason)
 {
 	if (!x)
 	{
-		fprintf(stderr,"%s", reason);
+		//fprintf(stderr,"%s", reason);
 		s_debug_break();
 	}
 }

@@ -9,11 +9,11 @@
 namespace SMOBA
 {
 
-#define CHUNK_MAX 256
+#define CHUNK_MAX 1024
 #define CHUNK_MAX_ACTIVE 32;
-#define CHUNK_GEN_RADIUS 4
+#define CHUNK_GEN_RADIUS 12
 #define CHUNK_GEN_DIAMETER CHUNK_GEN_RADIUS * 2
-#define CHUNK_WIDTH 32
+#define CHUNK_WIDTH 8
 #define CHUNK_HEIGHT 256
 #define CHUNK_VOLUME CHUNK_WIDTH*CHUNK_WIDTH*CHUNK_HEIGHT
 #define BLOCK_METER 1.0f
@@ -39,7 +39,7 @@ namespace SMOBA
 #pragma pack(push, 1)
     struct Chunk_File_Header
     {
-        const u32 Magic = CHUNK_MAGIC;
+        u32 Magic;
         u64 Size; //NOTE(matthias): Size of entire file.
         u64 IndexOffset; //NOTE(matthias): File index location starting from the end of the header.
     };
@@ -70,6 +70,7 @@ namespace SMOBA
     {
         b8 generate;
 		b8 Active;
+        ID Index;
         ID MeshID;
         i32 WorldPosX;
         i32 WorldPosY;
@@ -88,7 +89,7 @@ namespace SMOBA
         //Voxel_Chunk* ActiveChunks[CHUNK_MAX_ACTIVE];
         i32 ChunkSize;
         Voxel_Chunk Chunks[CHUNK_MAX];
-        HashNode* ChunkHashMap[HASH_TABLE_SIZE];
+        volatile HashNode* ChunkHashMap[HASH_TABLE_SIZE];
     };
 
     Voxel_World* Generate_Voxel_World();
@@ -99,4 +100,5 @@ namespace SMOBA
 	void Update_Voxel_World(Voxel_World* world, vec3 playerPos);
     void Voxel_World_Gen_Chunk_Meshes(Voxel_World* world);
     void Draw_Voxel_World(Queue_Array<RenderCommand>* rq, Voxel_World* voxelWorld);
+    i32 Voxel_Convert_R32_To_Chunk(r32 x);
 }

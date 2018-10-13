@@ -6,8 +6,7 @@
 
 namespace SMOBA
 {
-    
-    Voxel_Chunk* Voxel_Chunk_Read_Hash(i32 chunkX, i32 chunkY, HashNode** table)
+   Voxel_Chunk* Voxel_Chunk_Read_Hash(i32 chunkX, i32 chunkY, HashNode** table)
     {
 		u64 key = (u64)chunkX << 32;
 		key |= (u32)chunkY;
@@ -31,7 +30,7 @@ namespace SMOBA
 	{
 
 		Voxel_Frozen_Chunk result = { sizeof(Voxel_Chunk), (u8*)chunk };
-		Mesh* mesh = &ASSETS::Meshes[chunk->MeshID];
+		//Mesh* mesh = &ASSETS::Meshes[chunk->MeshID];
 		//Destroy_Mesh(mesh);
 		//TODO(matthias): Remember to reuse Mesh slot.
 		return result;
@@ -39,32 +38,38 @@ namespace SMOBA
 
 	void Voxel_Chunk_Write_To_Disk(i32 chunkX, i32 chunkY, Voxel_World* world)
 	{
+
+        //NOTE(matthias): Prepare chunk for writing to disk.
 		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
 		Voxel_Frozen_Chunk frozenChunk = Voxel_Chunk_Freeze(chunk);
 
+        //NOTE(matthias): Get file info header and index for chunk data locations.
 		Chunk_File_Header header = {};
+		header.Magic = CHUNK_MAGIC;
 		Chunk_File_Index index;
-		u64 chunkFileLoc = sizeof(Chunk_File_Header);
+		u64 chunkFileLoc = 0;
 
-		FILE* file = fopen("test.dat", "r+b");
-		if (file != 0)
+        //TODO(matthias): Eventualy pick file based on chunk Location.
+		FILE* file = fopen("test.bitv", "r+b");
+		if (file != 0) //NOTE(matthias): Chunk file exists.
 		{
 			fread(&header, sizeof(Chunk_File_Header), 1, file);
 			s_assert(header.Magic == CHUNK_MAGIC, "Not a valid ChunkFile!");
 			fseek(file, header.IndexOffset, SEEK_SET);
 			fread(&index, sizeof(Chunk_File_Index), 1, file);
 		}
-		else
+		else //NOTE(matthias): Create new file.
 		{
-			file = fopen("test.dat", "w+b");
+			file = fopen("test.bitv", "w+b");
 			header.IndexOffset = sizeof(Chunk_File_Header);
 			index.NumEntries = 0;
 		}
 		bool found = false;
 
+        //NOTE(matthias): Check if chunkfile is full and if chunk data just needs updating.
 		if (index.NumEntries + 1 < CHUNK_FILE_INDEX_COUNT )
 		{
-			if (index.NumEntries - 1 != 0)
+			if (index.NumEntries != 0)
 			{
 				for (i32 entry = 0; entry < index.NumEntries; entry++)
 				{
@@ -77,11 +82,13 @@ namespace SMOBA
 				}
 			}
 		}
-		else
+		else //TODO(matthias): Eventualy create new chunk file if current is full.
+
 		{
 			s_assert(false, "NOT IMPLEMENTED");
 		}
 
+        //NOTE(matthias): If chunk entry doesn't exist create it
 		if (!found)
 		{
 			index.Entries[index.NumEntries].X = chunkX;
@@ -91,13 +98,18 @@ namespace SMOBA
 			header.IndexOffset += frozenChunk.Size;
 			index.NumEntries++;
 		}
+
+        //NOTE(matthias): If this is a new file, write header to disk.
 		if (index.NumEntries - 1 == 0)
 		{
 			fseek(file, 0, SEEK_SET);
 			fwrite(&header, sizeof(Chunk_File_Header), 1, file);
 		}
 		fseek(file, chunkFileLoc, SEEK_SET);
+
+        //NOTE(matthias): Write chunk data here.
 		fwrite(frozenChunk.Data, 1, frozenChunk.Size, file);
+        //NOTE(matthias): We need to move to updated index data to the end of the file if we're creating a new entry.
 		if (!found)
 		{
 			fseek(file, 0, SEEK_SET);
@@ -111,12 +123,28 @@ namespace SMOBA
 
 	void Voxel_Chunk_Read_From_Disk(i32 chunkX, i32 chunkY, Voxel_World* world)
 	{
+        //NOTE(matthias): Get file info header and index for chunk data locations.
+		Chunk_File_Header header;
+		Chunk_File_Index index;
+		Voxel_Chunk chunk;
+		u64 chunkFileLoc = sizeof(Chunk_File_Header);
 
+        FILE* file = fopen("test.bitv", "rb");
+        if(file != 0) {
+            fread(&header, sizeof(Chunk_File_Header), 1, file);
+            s_assert(header.Magic == CHUNK_MAGIC, "Invalid bitv file");
+            fseek(file, header.IndexOffset, SEEK_SET);
+            fread(&index, sizeof(Chunk_File_Index), 1, file);
+            fseek(file, sizeof(Chunk_File_Header), SEEK_SET);
+            
+            fread(&chunk, sizeof(Voxel_Chunk), 1, file);
+        }
+		return;
 	}
 
 	void Remove_Block(Voxel_World* world, i32 chunkX, i32 chunkY, i32 blockX, i32 blockY, i32 blockZ)
 	{
-		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
+		Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
 
 		i32 blockIndex = (blockZ * (CHUNK_WIDTH*CHUNK_WIDTH)) + (blockY * CHUNK_WIDTH) + blockX;
 		chunk->Blocks[blockIndex].BlockType = Air;
@@ -127,7 +155,7 @@ namespace SMOBA
 		PerlinData p = Init_Perlin(94302831);
 		r64 genStep = 0.09;
 
-        Voxel_Chunk* currentChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* currentChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
 
         for(i32 x=0; x<CHUNK_WIDTH; x++)
         {
@@ -153,26 +181,42 @@ namespace SMOBA
 
     void Gen_Chunk(Voxel_World* world, i32 chunkX, i32 chunkY)
     {
-        u32 chunk = world->ChunkSize;
+		s_assert(world->ChunkSize < CHUNK_MAX, "Too Many CHUNKS!");
+        u32 chunk = ++world->ChunkSize;
         u8* heightMap = Generate_Chunk_HeightMap(chunkX, chunkY);
+		memset(&world->Chunks[chunk], 0, sizeof(Voxel_Chunk));
         Generate_HeightMap_Voxel_Chunk(heightMap, &(world->Chunks[chunk]));
+        world->Chunks[chunk].Index = chunk;
         world->Chunks[chunk].MeshID = 0;
         world->Chunks[chunk].generate = true;
+		world->Chunks[chunk].Active = true;
         world->Chunks[chunk].WorldPosX = chunkX;
         world->Chunks[chunk].WorldPosY = chunkY;
-        world->ChunkSize++;
         Voxel_Chunk_Write_Hash(chunkX, chunkY, &world->Chunks[chunk], (HashNode**)&world->ChunkHashMap);
         Dig_Caves(world, chunkX, chunkY);
         free(heightMap);
     }
 
+    void Remove_Chunk(Voxel_World* world, Voxel_Chunk* chunk)
+    {
+        //Destroy_Mesh(&ASSETS::Meshes[world->Chunks[chunkID].MeshID]);
+		//Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
+		if (chunk)
+		{
+			Voxel_Chunk_Delete_Hash(chunk->WorldPosX, chunk->WorldPosY, (HashNode**)world->ChunkHashMap);
+			world->Chunks[world->ChunkSize].Index = chunk->Index;
+			memmove(&world->Chunks[chunk->Index], &world->Chunks[world->ChunkSize], sizeof(Voxel_Chunk));
+			world->ChunkSize--;
+		}
+    }
+
 	Voxel_World* Generate_Voxel_World()
 	{
         Voxel_World* result = (Voxel_World*)calloc(1, sizeof(Voxel_World));
-		u32 numChunks = (CHUNK_GEN_DIAMETER) * (CHUNK_GEN_DIAMETER);
+		u32 numChunks = (CHUNK_GEN_DIAMETER*2) * (CHUNK_GEN_DIAMETER*2);
 
-		i32 currentChunkX = -(CHUNK_GEN_RADIUS);
-		i32 currentChunkY = -(CHUNK_GEN_RADIUS);
+		i32 currentChunkX = -(CHUNK_GEN_RADIUS*2);
+		i32 currentChunkY = -(CHUNK_GEN_RADIUS*2);
         r32 radiusSquared = CHUNK_GEN_RADIUS * CHUNK_GEN_RADIUS;
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
@@ -199,7 +243,7 @@ namespace SMOBA
 		u8* result = (u8*)malloc(sizeof(u8)*bytes);
 
 		PerlinData p = Init_Perlin(32);
-		r64 genStep = 0.022;
+		r64 genStep = 0.0072;
 
 		for (i32 row = 0; row < size; row++) {
 			for (i32 col = 0; col < size; col++) {
@@ -372,10 +416,10 @@ namespace SMOBA
         Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)&world->ChunkHashMap);
         if(chunk == 0)
             return;
-        Voxel_Chunk* LeftChunk = Voxel_Chunk_Read_Hash(chunkX-1, chunkY, (HashNode**)&world->ChunkHashMap);
-        Voxel_Chunk* RightChunk = Voxel_Chunk_Read_Hash(chunkX + 1, chunkY, (HashNode**)&world->ChunkHashMap);
-        Voxel_Chunk* FrontChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY-1, (HashNode**)&world->ChunkHashMap);
-        Voxel_Chunk* BackChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY+1, (HashNode**)&world->ChunkHashMap);
+        Voxel_Chunk* LeftChunk = Voxel_Chunk_Read_Hash(chunkX-1, chunkY, (HashNode**)world->ChunkHashMap);
+        Voxel_Chunk* RightChunk = Voxel_Chunk_Read_Hash(chunkX + 1, chunkY, (HashNode**)world->ChunkHashMap);
+        Voxel_Chunk* FrontChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY-1, (HashNode**)world->ChunkHashMap);
+        Voxel_Chunk* BackChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY+1, (HashNode**)world->ChunkHashMap);
 
 		Array<Vertex> vertices;
         vec3 Vertex_Pos(0.0f, 0.0f, 0.0f);
@@ -520,36 +564,46 @@ namespace SMOBA
 
 	void Update_Voxel_World(Voxel_World* world, vec3 playerPos)
 	{
-		i32 chunkX = playerPos.x / (BLOCK_METER * CHUNK_WIDTH);
-		i32 chunkY = playerPos.z / (BLOCK_METER * CHUNK_WIDTH);
-        r32 radiusSquared = CHUNK_GEN_RADIUS*CHUNK_GEN_RADIUS;
 
-		static bool start = true;
-		if (start)
+		const i32 ActiveRadius = 16;
+
+		for (i32 chunk = 0; chunk < world->ChunkSize; chunk++)
 		{
-			start = false;
-			Voxel_Chunk_Write_To_Disk(chunkX, chunkY, world);
+			Voxel_Chunk* currentChunk = &world->Chunks[chunk];
+
+
+			vec2 diff = vec2(currentChunk->WorldPosX, currentChunk->WorldPosY);
+			diff -= vec2(Voxel_Convert_R32_To_Chunk(playerPos.x), Voxel_Convert_R32_To_Chunk(playerPos.z));
+			if (diff.length() > ActiveRadius)
+			{
+				chunk--;
+				currentChunk->Active = false;
+				Remove_Chunk(world, currentChunk);
+			}
+			else
+			{
+				currentChunk->Active = true;
+			}
 		}
 
-        for(i32 y=-CHUNK_GEN_RADIUS; y < CHUNK_GEN_RADIUS; y++)
-        {
-            for(i32 x=-CHUNK_GEN_RADIUS; x < CHUNK_GEN_RADIUS; x++)
-            {
-                r32 lengthSquared = x*x + y*y;
-                if(lengthSquared <= radiusSquared)
-                {
-                    i32 currentX = x + chunkX;
-                    i32 currentY = y + chunkY;
-
-                    Voxel_Chunk* chunk = Voxel_Chunk_Read_Hash(currentX, currentY, (HashNode**)&world->ChunkHashMap);
-                    if(chunk == 0)
-                    {
-                        printf("Generating Chunk @ (%d, %d)\n", currentX, currentY);
-                        Gen_Chunk(world, currentX, currentY);
-                    }
-                }
-            }
-        }
+		for (i32 y = -ActiveRadius; y < ActiveRadius; y++)
+		{
+			for (i32 x = -ActiveRadius; x < ActiveRadius; x++)
+			{
+				vec2 diff = { (r32)x , (r32)y };
+				if (diff.length() < ActiveRadius)
+				{
+					i32 chunkX = (i32)diff.x + Voxel_Convert_R32_To_Chunk(playerPos.x);
+					i32 chunkY = (i32)diff.y + Voxel_Convert_R32_To_Chunk(playerPos.z);
+					
+					Voxel_Chunk* currentChunk = Voxel_Chunk_Read_Hash(chunkX, chunkY, (HashNode**)world->ChunkHashMap);
+					if (!currentChunk)
+					{
+						Gen_Chunk(world, chunkX, chunkY);
+					}
+				}
+			}
+		}
 	}
 
     void Voxel_World_Gen_Chunk_Meshes(Voxel_World* world)
@@ -571,7 +625,7 @@ namespace SMOBA
                     {x  , y-1}
                 };
 
-#if 1
+#if 0
                 for(i32 i=0; i<4; i++)
                 {
                     Generate_Voxel_Chunk_Mesh(world, dir[i][0], dir[i][1]);
@@ -587,6 +641,8 @@ namespace SMOBA
 		for (i32 chunk = 0; chunk < numChunks; chunk++)
 		{
 			Voxel_Chunk* CurrentChunk = &voxelWorld->Chunks[chunk];
+			if (CurrentChunk->Active)
+			{
             if(CurrentChunk->MeshID)
             {
                 RenderCommand rc = {};
@@ -603,30 +659,41 @@ namespace SMOBA
                 r32 rot = 0.0f;
                 rq->Push(rc);
             }
-            b8 debug = true;
-            if(debug)
-            {
-                for(i32 i=0; i<4; i++)
-                {
+            b8 debug = false;
+			if (debug)
+			{
+				for (i32 i = 0; i < 4; i++)
+				{
 					r32 gamePositionX, gamePositionY;
-                    RenderCommand rc = {};
-                    rc.RenderType = SIMPLE3DDEBUGLINES;
-                    rc.Color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
-                    if(i < 2)
-                    {
-                        gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH +(BLOCK_METER*CHUNK_WIDTH*i));
-                        gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);
-                    }
-                    else
-                    {
-                        gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH +(BLOCK_METER*CHUNK_WIDTH*(i-2)));
-                        gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH) +(BLOCK_METER*CHUNK_WIDTH);
-                    }
-                    rc.Point1 = vec3(gamePositionX, 0.0f, gamePositionY);
-                    rc.Point2 = vec3(gamePositionX, 256.0f, gamePositionY);
-                    rq->Push(rc);
-                }
+					RenderCommand rc = {};
+					rc.RenderType = SIMPLE3DDEBUGLINES;
+					rc.Color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
+					if (i < 2)
+					{
+						gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH + (BLOCK_METER*CHUNK_WIDTH*i));
+						gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH);
+					}
+					else
+					{
+						gamePositionX = CurrentChunk->WorldPosX * (BLOCK_METER*CHUNK_WIDTH + (BLOCK_METER*CHUNK_WIDTH*(i - 2)));
+						gamePositionY = CurrentChunk->WorldPosY * (BLOCK_METER*CHUNK_WIDTH) + (BLOCK_METER*CHUNK_WIDTH);
+					}
+					rc.Point1 = vec3(gamePositionX, 0.0f, gamePositionY);
+					rc.Point2 = vec3(gamePositionX, 256.0f, gamePositionY);
+					rq->Push(rc);
+				}
+			}
             }
 		}
 	}
+
+    i32 Voxel_Convert_R32_To_Chunk(r32 x)
+    {
+        i32 result = x / (BLOCK_METER * CHUNK_WIDTH);
+        if(x < 0.0f)
+        {
+            result -= result != 0 ? 0 : 1;
+        }
+        return result;
+    }
 }

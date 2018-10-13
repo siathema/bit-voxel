@@ -14,7 +14,7 @@ if(LINUX)
     set(CMAKE_CXX_FLAGS "-g -std=c++11 -fcolor-diagnostics")
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 else() #MSVC
-	set(CMAKE_CXX_FLAGS "-DWIN32=1 -DWIN64=1 /EHsc /Zi /MP ") #/F NUM to change default stack size.
+	set(CMAKE_CXX_FLAGS "-DWIN32=1 -DWIN64=1 /EHsc /Zi /MP /Od") #/F NUM to change default stack size.
 	set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG=1 /MTd /Od")
 endif()
 

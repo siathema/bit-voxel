@@ -44,7 +44,7 @@ namespace SMOBA
                 {
                     GameSync->Cams[1].Update(GameSync->Ip);
 					Update_Voxel_World(GameSync->VoxelWorld, GameSync->Cams[1].Pos);
-                     Draw_Voxel_World(GameSync->Rq, GameSync->VoxelWorld);
+                    Draw_Voxel_World(GameSync->Rq, GameSync->VoxelWorld);
 
                     GameSync->UpdateLoop = false;
                 }
@@ -215,16 +215,8 @@ namespace SMOBA
 			elapsedTime = SDL_GetTicks() - startTime;
 			r32 SecondsPerFrame = (1.0f / 1000) * elapsedTime;
 			r32 FPS = 1.0f / SecondsPerFrame;
-            i32 chunkX = cameras[1].Pos.x / (BLOCK_METER * CHUNK_WIDTH);
-            if(cameras[1].Pos.x < 0.0f)
-            {
-                chunkX -= chunkX != 0 ? 0 : 1;
-            }
-            i32 chunkZ = cameras[1].Pos.z / (BLOCK_METER * CHUNK_WIDTH);
-            if(cameras[1].Pos.z < 0.0f)
-            {
-                chunkZ -= chunkZ != 0 ? 0 : 1;
-            }
+            i32 chunkX = Voxel_Convert_R32_To_Chunk(cameras[1].Pos.x);
+            i32 chunkZ = Voxel_Convert_R32_To_Chunk(cameras[1].Pos.y);
 
 			sprintf(debugMessage,
 					format,

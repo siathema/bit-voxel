@@ -1,9 +1,11 @@
 #include "shared.hpp"
 #include "game.hpp"
+#include "sAssert.hpp"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <stdio.h>
 
 //NOTE(matthias): Based on https://github.com/Reputeless/PerlinNoise
 
@@ -78,15 +80,18 @@ namespace SMOBA
         u32 hashIndex = Murmur3_Hash_U32(key, size);
         hashIndex %= HASH_TABLE_SIZE;
         HashNode* currentNode = table[hashIndex];
+		//s_assert(hashIndex != 216, "");
 		if(currentNode == 0)
 		{
 			currentNode = (HashNode*)calloc(1, sizeof(HashNode));
+			s_assert(currentNode, "Allocation failed");
 			currentNode->Next = 0;
+			currentNode->Prev = 0;
 			currentNode->Address = dataAddress;
 
 			currentNode->Key = (u8*)malloc(size);
 			currentNode->KeySize = size;
-			memcpy(currentNode->Key, key, size);
+			memmove(currentNode->Key, key, size);
 			table[hashIndex] = currentNode;
 
 			return;
@@ -95,19 +100,23 @@ namespace SMOBA
         {
 			currentNode = currentNode->Next;
         }
+		printf("derfp\n");
 		currentNode->Next = (HashNode*)calloc(1, sizeof(HashNode));
+		s_assert(currentNode, "Allocation failed");
 		currentNode->Next->Prev = currentNode;
 		currentNode->Next->Address = dataAddress;
 
 		currentNode->Next->Key = (u8*)malloc(size);
 		currentNode->Next->KeySize = size;
-		memcpy(currentNode->Next->Key, key, size);
+		currentNode->Next->Next = 0;
+		memmove(currentNode->Next->Key, key, size);
     }
 
     void* HashRead(u8* key, u32 size, HashNode** table)
     {
         u32 hashIndex = Murmur3_Hash_U32(key, size);
         hashIndex %= HASH_TABLE_SIZE;
+		s_assert(hashIndex < HASH_TABLE_SIZE, "Out of bounds!");
         HashNode* currentNode = table[hashIndex];
         if(currentNode == 0)
         {
@@ -115,7 +124,7 @@ namespace SMOBA
         }
         do
         {
-            if(currentNode->KeySize == size)
+          if(currentNode->KeySize == size)
             {
                 if(memcmp(key, currentNode->Key, size) == 0)
                 {
@@ -143,7 +152,18 @@ namespace SMOBA
             {
                 if(memcmp(key, currentNode->Key, size) == 0)
                 {
-                    currentNode->Prev->Next = currentNode->Next;
+					if (currentNode->Prev)
+					{
+						currentNode->Prev->Next = currentNode->Next;
+						
+					}
+					else
+					{
+							table[hashIndex] = currentNode->Next;
+							
+					}
+					if (currentNode->Next)
+						currentNode->Next->Prev = 0;
                     free(currentNode->Key);
                     free(currentNode);
                     return;
